@@ -1,0 +1,744 @@
+/**
+ * 田んぼ帳 - スタイル
+ * 和風・土の人の雰囲気(石高プロジェクトとの調和)
+ */
+
+:root {
+  --washi: #f4ede0;
+  --washi-warm: #efe5d2;
+  --washi-deep: #e8dcc4;
+  --washi-edge: #d4c8b0;
+  --sumi: #2a241c;
+  --sumi-light: #5a4f42;
+  --sumi-fade: #8a8071;
+  --shu: #b04a3e;
+  --shu-deep: #8a3a30;
+  --shu-light: #c76a5e;
+  --koke: #6b7a3a;
+  --koke-deep: #4f5a28;
+  --ai: #2d4a5e;
+  --ai-deep: #1f3445;
+  --tsuchi: #8b6f47;
+  --tsuchi-deep: #6a5232;
+  --asagi: #7a9aa0;
+  --error: #8a3a30;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+html, body {
+  font-family: 'Noto Serif JP', serif;
+  color: var(--sumi);
+  background: var(--washi);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100vh;
+  background: var(--washi);
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(180,150,100,0.10), transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(140,120,80,0.08), transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.012) 2px, rgba(0,0,0,0.012) 3px);
+}
+
+/* ─────────────────────────────────────── */
+/* Loading / Error                         */
+/* ─────────────────────────────────────── */
+.loading {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px;
+}
+.loading-mark {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 48px;
+  color: var(--shu);
+  letter-spacing: 0.2em;
+}
+.loading-text {
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.2em;
+}
+.error-screen {
+  padding: 40px 24px;
+  text-align: center;
+  font-family: 'Shippori Mincho', serif;
+  color: var(--error);
+  font-size: 14px;
+  line-height: 2;
+}
+
+/* ─────────────────────────────────────── */
+/* Screen 基本構造                          */
+/* ─────────────────────────────────────── */
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.screen-header {
+  padding: 14px 20px 0;
+  position: sticky;
+  top: 0;
+  background: var(--washi);
+  background-image: inherit;
+  z-index: 10;
+}
+.header-row { display: flex; justify-content: space-between; align-items: baseline; }
+.h-title {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  color: var(--sumi);
+}
+.h-meta {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.05em;
+}
+.header-sub {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 11px;
+  color: var(--sumi-light);
+  letter-spacing: 0.15em;
+  margin-top: 4px;
+}
+.header-divider {
+  margin-top: 10px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--washi-edge) 20%, var(--washi-edge) 80%, transparent);
+}
+
+.screen-body {
+  flex: 1;
+  padding: 16px 18px 90px;
+}
+
+/* ─────────────────────────────────────── */
+/* Bottom Nav                              */
+/* ─────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 4px calc(14px + env(safe-area-inset-bottom));
+  background: rgba(244,237,224,0.97);
+  border-top: 1px solid var(--washi-edge);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 100;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  color: var(--sumi-fade);
+  text-decoration: none;
+  position: relative;
+  cursor: pointer;
+}
+.nav-item.active { color: var(--shu); }
+.nav-item.disabled { opacity: 0.4; }
+.nav-kanji {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+.nav-label {
+  font-family: 'Klee One', serif;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--shu);
+  border-radius: 1px;
+}
+
+/* ─────────────────────────────────────── */
+/* セクション                                */
+/* ─────────────────────────────────────── */
+.section { margin-bottom: 22px; }
+.sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sec-mark { width: 3px; height: 14px; background: var(--shu); border-radius: 1px; }
+.sec-title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.2em;
+}
+.sec-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--washi-edge), transparent); }
+.sec-action {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--ai);
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+
+/* ─────────────────────────────────────── */
+/* 本日の水加減                              */
+/* ─────────────────────────────────────── */
+.mizu-card {
+  background: linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
+  border: 1px solid var(--washi-edge);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+.mizu-head { margin-bottom: 12px; }
+.mizu-title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--sumi-fade);
+  text-indent: 0.35em;
+  text-align: center;
+}
+.mizu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--washi-edge);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255,250,238,0.5);
+}
+.mizu-col {
+  padding: 12px 10px 12px;
+}
+.mizu-col + .mizu-col { border-left: 1px solid var(--washi-edge); }
+.mizu-col-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 10px;
+  color: var(--tsuchi);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-align: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--washi-edge);
+}
+.mizu-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 70px;
+}
+.mizu-photo {
+  width: 100px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--washi-edge);
+}
+.mizu-photo.placeholder {
+  background: rgba(180,170,150,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.target-empty {
+  font-size: 40px;
+  color: var(--sumi-fade);
+  font-family: 'Shippori Mincho', serif;
+}
+.mizu-text { text-align: center; margin-top: 10px; }
+.mizu-main {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sumi);
+}
+.mizu-main.warn { color: var(--shu-deep); font-size: 12px; }
+.mizu-sub {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+.mizu-tags { margin-top: 5px; }
+.mizu-tag {
+  display: inline-block;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 9px;
+  padding: 1px 6px;
+  background: rgba(107,122,58,0.15);
+  color: var(--koke-deep);
+  border-radius: 8px;
+  margin: 2px 1px 0;
+}
+.mizu-tag.water {
+  background: rgba(122,154,160,0.18);
+  color: var(--ai);
+}
+.mizu-action {
+  display: inline-block;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 11px;
+  color: var(--ai);
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+/* ─────────────────────────────────────── */
+/* 当番カード                                */
+/* ─────────────────────────────────────── */
+.duty-card {
+  background: linear-gradient(135deg, rgba(176,74,62,0.06), rgba(176,74,62,0.02));
+  border: 1px solid rgba(176,74,62,0.25);
+  border-radius: 6px;
+  padding: 14px;
+}
+.duty-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.duty-day {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--shu);
+  letter-spacing: 0.1em;
+}
+.duty-names {
+  display: flex;
+  gap: 18px;
+  margin-top: 10px;
+  align-items: center;
+}
+.duty-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.shuin {
+  width: 44px; height: 44px;
+  background: var(--shu);
+  color: var(--washi);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 19px;
+  border: 1.5px solid var(--shu-deep);
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.08);
+  transform: rotate(-3deg);
+  position: relative;
+}
+.shuin.s2 { transform: rotate(2deg); }
+.shuin::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(244,237,224,0.3);
+}
+.duty-name {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.1em;
+}
+.duty-empty {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  text-align: center;
+  padding: 12px;
+}
+
+/* ─────────────────────────────────────── */
+/* 見回りアイテム                            */
+/* ─────────────────────────────────────── */
+.visit-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dotted var(--washi-edge);
+}
+.visit-item:last-child { border-bottom: none; }
+.visit-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid var(--washi-edge);
+}
+.visit-thumb.placeholder {
+  background: linear-gradient(180deg, #cfd9b0 0%, #b8c89a 50%, #889a5e 50%, #6a7a3a 100%);
+}
+.visit-info { flex: 1; min-width: 0; }
+.visit-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.visit-by {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sumi);
+}
+.visit-time {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  flex-shrink: 0;
+}
+.visit-note {
+  font-size: 11px;
+  color: var(--sumi-light);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.visit-tag {
+  display: inline-block;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 9px;
+  padding: 1px 6px;
+  background: rgba(107,122,58,0.12);
+  color: var(--koke-deep);
+  border-radius: 8px;
+  margin-right: 4px;
+}
+.visit-tag.water { background: rgba(122,154,160,0.18); color: var(--ai); }
+.visit-free { margin-left: 4px; color: var(--sumi-light); }
+
+.empty-note {
+  text-align: center;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  padding: 20px;
+}
+
+/* ─────────────────────────────────────── */
+/* やることリスト                            */
+/* ─────────────────────────────────────── */
+.tasks-card {
+  background: rgba(255,250,238,0.5);
+  border: 1px solid var(--washi-edge);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.tasks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--washi-edge);
+}
+.tasks-period {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--sumi);
+}
+.tasks-period.morning { color: var(--shu); }
+.tasks-period.evening { color: var(--ai); }
+.tasks-meta {
+  font-family: 'Klee One', serif;
+  font-size: 9px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.05em;
+}
+.tasks-list {
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--sumi-light);
+}
+.tasks-list li {
+  padding-left: 14px;
+  position: relative;
+}
+.tasks-list li::before {
+  content: '・';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--tsuchi);
+}
+
+/* ─────────────────────────────────────── */
+/* フォーム                                  */
+/* ─────────────────────────────────────── */
+.form-section {}
+.form-group { margin-bottom: 16px; }
+.f-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.15em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.f-label::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: var(--tsuchi);
+  border-radius: 50%;
+}
+.f-hint {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  margin-left: auto;
+  letter-spacing: 0;
+}
+.f-input {
+  width: 100%;
+  padding: 11px 12px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 14px;
+  color: var(--sumi);
+}
+.f-input:focus {
+  outline: none;
+  border-color: var(--shu);
+  background: rgba(255,255,255,0.8);
+}
+.f-textarea { min-height: 100px; resize: vertical; line-height: 1.7; }
+.f-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a4f42' stroke-width='1.2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 30px;
+}
+
+.toggle-group {
+  display: flex;
+  gap: 6px;
+}
+.toggle-btn {
+  flex: 1;
+  padding: 11px 6px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sumi-light);
+  text-align: center;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.toggle-btn.active {
+  background: var(--sumi);
+  color: var(--washi);
+  border-color: var(--sumi);
+}
+
+/* 写真アップ */
+.photo-up {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 140px;
+  background: rgba(255,255,255,0.4);
+  border: 1.5px dashed var(--washi-edge);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.photo-up-icon {
+  width: 38px; height: 38px;
+  border: 1.5px solid var(--tsuchi);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  color: var(--tsuchi);
+  font-size: 20px;
+}
+.photo-up-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  color: var(--sumi-light);
+  letter-spacing: 0.1em;
+}
+.photo-up-hint {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+}
+.photo-preview {
+  position: relative;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--washi-edge);
+}
+.photo-preview img {
+  width: 100%;
+  display: block;
+  max-height: 240px;
+  object-fit: cover;
+}
+.photo-preview-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(42,36,28,0.7);
+  color: var(--washi);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 15px;
+  background: var(--shu);
+  color: var(--washi);
+  border: none;
+  border-radius: 6px;
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  box-shadow: 0 2px 0 var(--shu-deep), 0 4px 8px rgba(176,74,62,0.2);
+  cursor: pointer;
+  margin-top: 10px;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  color: var(--sumi-light);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.form-error {
+  background: rgba(176,74,62,0.1);
+  color: var(--error);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* ─────────────────────────────────────── */
+/* 送信完了                                  */
+/* ─────────────────────────────────────── */
+.success-card {
+  text-align: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, rgba(107,122,58,0.06), rgba(107,122,58,0.02));
+  border: 1px solid rgba(107,122,58,0.25);
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+.success-mark {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 48px;
+  color: var(--koke-deep);
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+.success-text {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  color: var(--sumi);
+  line-height: 2;
+}
+
+.share-card {
+  background: rgba(255,250,238,0.5);
+  border: 1px solid var(--washi-edge);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.share-head { margin-bottom: 12px; }
+.share-title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sumi);
+  letter-spacing: 0.25em;
+  margin-bottom: 4px;
+}
+.share-sub {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  line-height: 1.6;
+}
+.share-text {
+  background: var(--sumi);
+  color: var(--washi);
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'Noto Serif JP', serif;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}

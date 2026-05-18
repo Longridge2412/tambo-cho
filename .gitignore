@@ -1,0 +1,8 @@
+.DS_Store
+*.log
+node_modules/
+.vscode/
+.idea/
+
+# 個人の作業ファイル
+*.local.*
