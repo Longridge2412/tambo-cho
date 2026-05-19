@@ -163,6 +163,55 @@ export function buildVisitShareText(visit, memberName) {
 }
 
 /**
+ * 共用設備操作から LINE 共有用のテキストを生成。
+ * @param {object} op - facility_op
+ * @param {string} memberName - 操作者名
+ * @param {object|null} pairedOp - 紐付け元の「開けた」記録(閉めた時のみ)
+ * @returns {string}
+ */
+export function buildFacilityShareText(op, memberName, pairedOp) {
+  const d = new Date(op.operated_at);
+  const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+  const lines = [
+    `🚰 共用設備操作 ${memberName}`,
+    `${dateStr} ${timeStr}`,
+    ``
+  ];
+
+  // 対象 + 動作
+  if (op.target === 'じょうご') {
+    lines.push(`じょうごを${op.action}`);
+  } else if (op.target === '三つ又') {
+    lines.push(op.action && op.action !== 'その他' ? `三つ又: ${op.action}` : `三つ又を操作`);
+  } else {
+    lines.push(op.action && op.action !== 'その他' ? `${op.target}: ${op.action}` : `${op.target}を操作`);
+  }
+
+  if (op.reason) lines.push(`理由:${op.reason}`);
+  if (op.coordination_note) {
+    lines.push(``);
+    lines.push(op.coordination_note);
+  }
+
+  // 開けた → 閉め忘れ防止
+  if (op.target === 'じょうご' && op.action === '開けた') {
+    lines.push(``);
+    lines.push('※後で閉めるのを忘れずに');
+  }
+  // 閉めた → 対応する開けた記録への参照
+  if (op.target === 'じょうご' && op.action === '閉めた' && pairedOp) {
+    const od = new Date(pairedOp.operated_at);
+    const odStr = `${od.getMonth()+1}/${od.getDate()} ${String(od.getHours()).padStart(2,'0')}:${String(od.getMinutes()).padStart(2,'0')}`;
+    lines.push('');
+    lines.push(`(${pairedOp.display_name || pairedOp.member_id} が ${odStr} に開けたものに対応)`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
  * テキストをクリップボードにコピー(モダンAPI、フォールバック付き)。
  */
 export async function copyToClipboard(text) {

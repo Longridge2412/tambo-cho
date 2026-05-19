@@ -369,7 +369,11 @@ function apiGetTodayContext() {
 
   let target = null;
   for (const t of targets) {
-    if (isWithin(today_md, t.start_md, t.end_md)) {
+    // Sheets で日付セルとして入力されると start_md / end_md は Date オブジェクトで返ってくる。
+    // 文字列(MM-DD)と Date のどちらでも比較できるように正規化する。
+    const startMd = toMd_(t.start_md);
+    const endMd   = toMd_(t.end_md);
+    if (isWithin(today_md, startMd, endMd)) {
       target = {
         target_label: t.target_label,
         period_label: t.period_label,
@@ -413,4 +417,20 @@ function isWithin(today_md, start_md, end_md) {
   }
   // 年をまたぐ
   return today_md >= start_md || today_md <= end_md;
+}
+
+/**
+ * Date オブジェクトまたは文字列を "MM-DD" 形式に正規化。
+ * - Date が来たら月日を取り出してゼロパディング
+ * - 文字列(既に MM-DD 形式) ならそのまま返す
+ * - その他は空文字を返す(マッチしない期間として扱われる)
+ */
+function toMd_(value) {
+  if (value instanceof Date) {
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${m}-${d}`;
+  }
+  if (value == null) return '';
+  return String(value);
 }

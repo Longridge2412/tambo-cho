@@ -38,5 +38,9 @@ export const api = {
   listSeasonTargets:  () => callApi('listSeasonTargets'),
   getTodayContext:    () => callApi('getTodayContext'),
   addVisit:           (payload) => callApi('addVisit', payload),
-  listVisits:         (payload) => callApi('listVisits', payload)
+  listVisits:         (payload) => callApi('listVisits', payload),
+  addFacilityOp:      (payload) => callApi('addFacilityOp', payload),
+  listFacilityOps:    (payload) => callApi('listFacilityOps', payload),
+  addNote:            (payload) => callApi('addNote', payload),
+  listNotes:          () => callApi('listNotes')
 };

@@ -6,7 +6,7 @@
  * API レスポンスや画像はキャッシュしない(常に最新を取りに行く)。
  */
 
-const CACHE_NAME = 'tambo-cho-v1';
+const CACHE_NAME = 'tambo-cho-v2';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const STATIC_FILES = [
   './src/utils.js',
   './src/pages/Home.js',
   './src/pages/Visit.js',
+  './src/pages/Facility.js',
   './src/components/BottomNav.js',
   './src/components/Header.js',
   './src/styles.css'

@@ -1,7 +1,7 @@
 /**
  * 下部ナビゲーション(漢字単字)
  *
- * Step 1 では「帳」「見」のみアクティブ。残りは仮置き。
+ * Step 2 で「樋(設備)」を有効化。残り3つはこれから。
  */
 
 const { createElement: h } = React;
@@ -10,7 +10,7 @@ const html = htm.bind(h);
 const ITEMS = [
   { route: '#/',       kanji: '帳', label: '今日',    enabled: true },
   { route: '#/visit',  kanji: '見', label: '見回り',  enabled: true },
-  { route: '#/facility', kanji: '樋', label: '設備',  enabled: false },
+  { route: '#/facility', kanji: '樋', label: '設備',  enabled: true },
   { route: '#/duty',   kanji: '番', label: '当番',    enabled: false },
   { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: false },
   { route: '#/history',kanji: '綴', label: '綴り',    enabled: false }

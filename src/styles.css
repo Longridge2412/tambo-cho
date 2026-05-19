@@ -742,3 +742,88 @@ html, body {
   display: flex;
   gap: 8px;
 }
+
+/* ─────────────────────────────────────── */
+/* 共用設備画面 (#/facility) 専用            */
+/* ─────────────────────────────────────── */
+
+/* 「開けた」時の控えめな注意喚起 */
+.hint-soft {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi-fade);
+  text-align: center;
+  letter-spacing: 0.15em;
+  margin-top: 10px;
+  padding: 10px 8px;
+  background: rgba(180, 150, 100, 0.05);
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+/* 「閉めた」時の対応候補セクション */
+.paired-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--washi-edge);
+}
+.paired-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+}
+.paired-empty {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi-fade);
+  padding: 12px;
+  text-align: center;
+  background: var(--washi-warm);
+  border-radius: 4px;
+}
+.paired-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  background: var(--washi);
+  cursor: pointer;
+  font-family: 'Noto Serif JP', serif;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.paired-item:hover {
+  background: var(--washi-warm);
+}
+.paired-item.active {
+  background: var(--sumi);
+  color: var(--washi);
+  border-color: var(--sumi);
+}
+.paired-by {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.paired-time {
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-top: 2px;
+  font-family: 'Klee One', serif;
+}
+.paired-item.active .paired-time {
+  color: var(--washi-deep);
+}
+.paired-reason {
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-top: 4px;
+  font-style: italic;
+}
+.paired-item.active .paired-reason {
+  color: var(--washi-deep);
+}
