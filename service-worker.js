@@ -1,12 +1,15 @@
 /**
  * 田んぼ帳 - Service Worker
  *
- * Step 1 では「ホーム画面に追加できる」を主目的とする。
- * オフラインキャッシュは最小限(静的ファイルだけ)。
- * API レスポンスや画像はキャッシュしない(常に最新を取りに行く)。
+ * 戦略:
+ *   - 同一オリジンの静的ファイルは「network-first, cache fallback」
+ *     → 更新が即時反映される(スマホでも古いキャッシュに固定されない)
+ *     → ネット切れ時はキャッシュ品を返す(オフラインでも開ける)
+ *   - 外部フォントは cache-first(滅多に変わらないので)
+ *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v4';
+const CACHE_NAME = 'tambo-cho-v5';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -42,13 +45,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // GAS への通信はキャッシュしない
+  // GAS への通信はキャッシュしない(SWで横取りしない、ブラウザ任せ)
   if (url.host.includes('script.google.com')) return;
 
   // Drive 画像はキャッシュしない
   if (url.host.includes('googleusercontent.com') || url.host.includes('drive.google.com')) return;
 
-  // 外部フォント(Google Fonts)は cache-first
+  // 外部フォント(Google Fonts)は cache-first(滅多に変わらない)
   if (url.host.includes('fonts.googleapis.com') || url.host.includes('fonts.gstatic.com')) {
     event.respondWith(
       caches.match(event.request).then(cached => cached || fetch(event.request).then(res => {
@@ -60,13 +63,4 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 同一オリジンの静的ファイルは cache-first(オフラインでも開ける)
-  event.respondWith(
-    caches.match(event.request).then(cached =>
-      cached || fetch(event.request).catch(() =>
-        // フォールバック:ホーム画面
-        caches.match('./index.html')
-      )
-    )
-  );
-});
+  // 同一オリジンの静的ファイルは「network-first, cache fallback」

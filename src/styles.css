@@ -744,6 +744,34 @@ html, body {
 }
 
 /* ─────────────────────────────────────── */
+/* 明日の当番(控えめ表示)                  */
+/* ─────────────────────────────────────── */
+
+.duty-tomorrow {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--washi-edge);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: center;
+}
+
+.duty-tomorrow-label {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.2em;
+}
+
+.duty-tomorrow-names {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  letter-spacing: 0.1em;
+}
+
+/* ─────────────────────────────────────── */
 /* 堤未完了リマインダー(ホーム画面)         */
 /* ─────────────────────────────────────── */
 
@@ -796,43 +824,4 @@ html, body {
 .reminder-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  font-family: 'Noto Serif JP', serif;
-  font-size: 13px;
-  line-height: 2;
-  color: var(--sumi);
-}
-
-.reminder-by {
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.reminder-time {
-  font-size: 11px;
-  color: var(--sumi-light);
-  font-family: 'Klee One', serif;
-}
-
-.reminder-elapsed {
-  font-size: 11px;
-  color: var(--sumi-fade);
-  margin-left: auto;
-  font-family: 'Klee One', serif;
-}
-
-.reminder-action {
-  display: inline-block;
-  margin-top: 10px;
-  margin-left: 40px;
-  font-size: 12px;
-  color: var(--tsuchi-deep);
-  text-decoration: none;
-  font-family: 'Klee One', serif;
-  letter-spacing: 0.1em;
-}
-.reminder-action:hover {
-  color: var(--sumi);
-}
-
-/* ──────────────────────────────�
+  gap

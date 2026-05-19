@@ -32,6 +32,8 @@ export function HomePage() {
   const target = ctx.target;
   const latest = ctx.latest_visit;
   const todayDuty = ctx.today.today_duty || [];
+  const tomorrowDuty = ctx.today.tomorrow_duty || [];
+  const tomorrowDow = ctx.today.tomorrow_day_of_week || '';
 
   return html`
     <div class="screen">
@@ -137,6 +139,14 @@ export function HomePage() {
               `
               : html`<div class="duty-empty">当番表が未設定です</div>`
             }
+            ${tomorrowDuty.length > 0 && html`
+              <div class="duty-tomorrow">
+                <span class="duty-tomorrow-label">明日 ${tomorrowDow}</span>
+                <span class="duty-tomorrow-names">
+                  ${tomorrowDuty.map(d => d.display_name).join(' ・ ')}
+                </span>
+              </div>
+            `}
           </div>
         </section>
 
@@ -180,12 +190,4 @@ export function HomePage() {
             <div class="sec-line"></div>
             <a class="sec-action" href="#/facility">記す ›</a>
           </div>
-          ${ctx.recent_facility_ops && ctx.recent_facility_ops.length > 0
-            ? ctx.recent_facility_ops.map(op => html`
-              <div class="facility-item" key=${op.op_id}>
-                <div class=${`facility-icon ${op.target === '堤' ? (op.action === '開けた' ? 'open' : 'close') : 'other'}`}>
-                  ${(op.target || '').charAt(0)}
-                </div>
-                <div class="facility-info">
-                  <div class="facility-top">
-                    <div class=
+          ${ctx.recent_facility_ops && ct

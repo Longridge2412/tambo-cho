@@ -338,6 +338,7 @@ function apiGetTodayContext() {
   const now = new Date();
   const dayOfWeekMap = ['日', '月', '火', '水', '木', '金', '土'];
   const dayJp = dayOfWeekMap[now.getDay()];
+  const tomorrowJp = dayOfWeekMap[(now.getDay() + 1) % 7];
 
   // 全シートを1回ずつだけ読む
   const members       = readSheet(SHEET_NAMES.MEMBERS);
@@ -352,6 +353,12 @@ function apiGetTodayContext() {
   // 1. 本日の当番
   const todayDuty = dutyMaster
     .filter(r => r.day_of_week === dayJp)
+    .map(r => ({ ...r, display_name: memberMap[r.member_id] || '?' }))
+    .sort((a, b) => Number(a.slot) - Number(b.slot));
+
+  // 1.5. 明日の当番
+  const tomorrowDuty = dutyMaster
+    .filter(r => r.day_of_week === tomorrowJp)
     .map(r => ({ ...r, display_name: memberMap[r.member_id] || '?' }))
     .sort((a, b) => Number(a.slot) - Number(b.slot));
 
@@ -405,7 +412,9 @@ function apiGetTodayContext() {
     today: {
       date_iso: now.toISOString(),
       day_of_week: dayJp,
-      today_duty: todayDuty
+      today_duty: todayDuty,
+      tomorrow_day_of_week: tomorrowJp,
+      tomorrow_duty: tomorrowDuty
     },
     target: target,
     latest_visit: recentVisits[0] || null,
@@ -423,18 +432,4 @@ function isWithin(today_md, start_md, end_md) {
   if (start_md <= end_md) {
     return start_md <= today_md && today_md <= end_md;
   }
-  return today_md >= start_md || today_md <= end_md;
-}
-
-/**
- * Date オブジェクトまたは文字列を "MM-DD" 形式に正規化。
- */
-function toMd_(value) {
-  if (value instanceof Date) {
-    const m = String(value.getMonth() + 1).padStart(2, '0');
-    const d = String(value.getDate()).padStart(2, '0');
-    return `${m}-${d}`;
-  }
-  if (value == null) return '';
-  return String(value);
-}
+  return today_md >= start_md || 
