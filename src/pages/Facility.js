@@ -2,8 +2,8 @@
  * 共用設備操作画面
  *
  * 構成:
- *   - 操作対象トグル(じょうご/三つ又/その他)
- *   - じょうご → 開けた/閉めた
+ *   - 操作対象トグル(堤/三つ又/その他)
+ *   - 堤 → 開けた/閉めた
  *   - 「開けた」選択時の控えめな注意喚起
  *   - 「閉めた」選択時の対応(paired_op_id)選択
  *   - 理由、調整・申し送り
@@ -26,15 +26,15 @@ import { BottomNav } from '../components/BottomNav.js';
 export function FacilityPage() {
   const [members, setMembers] = useState([]);
   const [memberId, setMemberId] = useState('');
-  const [target, setTarget] = useState('じょうご');     // じょうご / 三つ又 / その他
-  const [action, setAction] = useState('開けた');        // 開けた / 閉めた(じょうご時)
+  const [target, setTarget] = useState('堤');     // 堤 / 三つ又 / その他
+  const [action, setAction] = useState('開けた');        // 開けた / 閉めた(堤時)
   const [pairedOpId, setPairedOpId] = useState('');     // 閉めた時に紐付ける op_id
   const [otherActionText, setOtherActionText] = useState('');
   const [reason, setReason] = useState('');
   const [coordinationNote, setCoordinationNote] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [openJoUgoList, setOpenJoUgoList] = useState([]);
+  const [openTsutsumiList, setOpenTsutsumiList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState(null);
@@ -48,27 +48,27 @@ export function FacilityPage() {
 
   // 「閉めた」を選んだ時に「未完了の開けた」を取得
   useEffect(() => {
-    if (target === 'じょうご' && action === '閉めた') {
+    if (target === '堤' && action === '閉めた') {
       api.listFacilityOps({ limit: 100 })
         .then(ops => {
           // 既に「閉めた」が紐付けている paired_op_id を集合化
           const pairedSet = new Set(
             ops
-              .filter(o => o.target === 'じょうご' && o.action === '閉めた' && o.paired_op_id)
+              .filter(o => o.target === '堤' && o.action === '閉めた' && o.paired_op_id)
               .map(o => o.paired_op_id)
           );
           // 「開けた」のうち、ペアリングされていないものを抽出(新しい順)
           const opens = ops
-            .filter(o => o.target === 'じょうご' && o.action === '開けた' && !pairedSet.has(o.op_id))
+            .filter(o => o.target === '堤' && o.action === '開けた' && !pairedSet.has(o.op_id))
             .sort((a, b) => (b.operated_at || '').localeCompare(a.operated_at || ''));
           // メンバー名を付与
           const memberMap = {};
           members.forEach(m => { memberMap[m.member_id] = m.display_name; });
-          setOpenJoUgoList(opens.map(o => ({ ...o, display_name: memberMap[o.member_id] || '?' })));
+          setOpenTsutsumiList(opens.map(o => ({ ...o, display_name: memberMap[o.member_id] || '?' })));
         })
         .catch(err => setError(`未完了一覧の取得失敗: ${err.message}`));
     } else {
-      setOpenJoUgoList([]);
+      setOpenTsutsumiList([]);
       setPairedOpId('');
     }
   }, [target, action, members]);
@@ -87,7 +87,7 @@ export function FacilityPage() {
       setError('名前を選んでください');
       return;
     }
-    if (target === 'じょうご' && action === '閉めた' && openJoUgoList.length > 0 && !pairedOpId) {
+    if (target === '堤' && action === '閉めた' && openTsutsumiList.length > 0 && !pairedOpId) {
       setError('どの「開けた」に対応するか選んでください');
       return;
     }
@@ -100,8 +100,8 @@ export function FacilityPage() {
         photoDataUrl = await compressImageToDataUrl(photoFile);
       }
 
-      // 実際の action 値:じょうごは「開けた/閉めた」、他は自由テキストか「その他」
-      const actualAction = (target === 'じょうご')
+      // 実際の action 値:堤は「開けた/閉めた」、他は自由テキストか「その他」
+      const actualAction = (target === '堤')
         ? action
         : (otherActionText.trim() || 'その他');
 
@@ -116,7 +116,7 @@ export function FacilityPage() {
       });
 
       const memberName = members.find(m => m.member_id === memberId)?.display_name || '?';
-      const pairedOp = pairedOpId ? openJoUgoList.find(o => o.op_id === pairedOpId) : null;
+      const pairedOp = pairedOpId ? openTsutsumiList.find(o => o.op_id === pairedOpId) : null;
       const shareText = buildFacilityShareText(op, memberName, pairedOp);
 
       setSubmitted({ op, shareText, memberName });
@@ -159,15 +159,15 @@ export function FacilityPage() {
           <div class="form-group">
             <div class="f-label">何 を 操 作 し た か</div>
             <div class="toggle-group">
-              ${['じょうご', '三つ又', 'その他'].map(opt => html`
+              ${['堤', '三つ又', 'その他'].map(opt => html`
                 <button key=${opt} type="button"
                   class=${`toggle-btn ${target === opt ? 'active' : ''}`}
-                  onClick=${() => { setTarget(opt); setAction(opt === 'じょうご' ? '開けた' : '開けた'); }}>${opt}</button>
+                  onClick=${() => { setTarget(opt); setAction(opt === '堤' ? '開けた' : '開けた'); }}>${opt}</button>
               `)}
             </div>
           </div>
 
-          ${target === 'じょうご' && html`
+          ${target === '堤' && html`
             <div class="form-group">
               <div class="f-label">ど う し た</div>
               <div class="toggle-group">
@@ -178,14 +178,14 @@ export function FacilityPage() {
                 `)}
               </div>
               ${action === '開けた' && html`
-                <div class="hint-soft">・ ・ ・   後で じょうごを 閉めるのを 忘れずに   ・ ・ ・</div>
+                <div class="hint-soft">・ ・ ・   後で 堤を 閉めるのを 忘れずに   ・ ・ ・</div>
               `}
               ${action === '閉めた' && html`
                 <div class="paired-section">
                   <div class="paired-label">どの「開けた」を 閉めますか</div>
-                  ${openJoUgoList.length === 0
+                  ${openTsutsumiList.length === 0
                     ? html`<div class="paired-empty">「開けたまま」の記録がありません</div>`
-                    : openJoUgoList.map(o => html`
+                    : openTsutsumiList.map(o => html`
                       <button key=${o.op_id} type="button"
                         class=${`paired-item ${pairedOpId === o.op_id ? 'active' : ''}`}
                         onClick=${() => setPairedOpId(o.op_id)}>
@@ -200,7 +200,7 @@ export function FacilityPage() {
             </div>
           `}
 
-          ${target !== 'じょうご' && html`
+          ${target !== '堤' && html`
             <div class="form-group">
               <div class="f-label">操 作 内 容 <span class="f-hint">任意</span></div>
               <input type="text" class="f-input"
@@ -308,3 +308,4 @@ function SubmittedView({ data, onReset }) {
     </div>
   `;
 }
+                                                                                                                        

@@ -17,8 +17,8 @@ import { BottomNav } from '../components/BottomNav.js';
 
 const MORNING_TASKS = [
   '水量チェック(目安:苗半分)',
-  '足りなければじょうご開け・水入れ',
-  'じょうごは必ず閉める(掛矢を使う)',
+  '足りなければ堤開け・水入れ',
+  '堤は必ず閉める(掛矢を使う)',
   '水口も閉める(勝手に水が入らないように)',
   '水口・落し口の決壊や崩れチェック',
   '崩れていたら泥で適宜修復',
@@ -191,7 +191,7 @@ export function VisitPage() {
               class="f-input f-textarea"
               value=${freeNote}
               onChange=${e => setFreeNote(e.target.value)}
-              placeholder=${`例:\n・田んぼの状態(水位適、稲は元気)\n・やったこと(じょうご開けて水入れた)\n・健さんや集落から(水路掃除が来週)\n・懸念(南東の畔が崩れそう)`}
+              placeholder=${`例:\n・田んぼの状態(水位適、稲は元気)\n・やったこと(堤開けて水入れた)\n・健さんや集落から(水路掃除が来週)\n・懸念(南東の畔が崩れそう)`}
             />
           </div>
 

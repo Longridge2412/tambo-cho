@@ -6,7 +6,7 @@
  * API レスポンスや画像はキャッシュしない(常に最新を取りに行く)。
  */
 
-const CACHE_NAME = 'tambo-cho-v2';
+const CACHE_NAME = 'tambo-cho-v3';
 const STATIC_FILES = [
   './',
   './index.html',

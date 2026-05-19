@@ -181,8 +181,8 @@ export function buildFacilityShareText(op, memberName, pairedOp) {
   ];
 
   // 対象 + 動作
-  if (op.target === 'じょうご') {
-    lines.push(`じょうごを${op.action}`);
+  if (op.target === '堤') {
+    lines.push(`堤を${op.action}`);
   } else if (op.target === '三つ又') {
     lines.push(op.action && op.action !== 'その他' ? `三つ又: ${op.action}` : `三つ又を操作`);
   } else {
@@ -196,12 +196,12 @@ export function buildFacilityShareText(op, memberName, pairedOp) {
   }
 
   // 開けた → 閉め忘れ防止
-  if (op.target === 'じょうご' && op.action === '開けた') {
+  if (op.target === '堤' && op.action === '開けた') {
     lines.push(``);
     lines.push('※後で閉めるのを忘れずに');
   }
   // 閉めた → 対応する開けた記録への参照
-  if (op.target === 'じょうご' && op.action === '閉めた' && pairedOp) {
+  if (op.target === '堤' && op.action === '閉めた' && pairedOp) {
     const od = new Date(pairedOp.operated_at);
     const odStr = `${od.getMonth()+1}/${od.getDate()} ${String(od.getHours()).padStart(2,'0')}:${String(od.getMinutes()).padStart(2,'0')}`;
     lines.push('');
@@ -236,3 +236,4 @@ export async function copyToClipboard(text) {
     }
   }
 }
+                                    
