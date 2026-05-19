@@ -1,9 +1,8 @@
 /**
  * Code.gs
- * 田んぼ帳 Step 0 - API 本体
+ * 田んぼ帳 - API 本体
  *
  * フロントから POST されたリクエストを action ごとにディスパッチする。
- * Step 0 では当番関連 API は未実装(スキーマだけ用意)。
  */
 
 /**
@@ -60,7 +59,6 @@ function dispatch(action, payload) {
     case 'addNote':           return apiAddNote(payload);
     case 'listNotes':         return apiListNotes();
     case 'uploadPhoto':       return apiUploadPhoto(payload);
-    // ── Step 1 で追加 ──
     case 'listDutyMaster':    return apiListDutyMaster();
     case 'listSeasonTargets': return apiListSeasonTargets();
     case 'getTodayContext':   return apiGetTodayContext();
@@ -110,7 +108,6 @@ function apiAddVisit(payload) {
   const visit_id = generateId('v', sheet);
   const visited_at = payload.visited_at || new Date().toISOString();
 
-  // 画像アップロード(あれば)
   let photo_url = '';
   if (payload.photo_data_url) {
     const filename = `${formatDateForFile(visited_at)}_${payload.member_id}.jpg`;
@@ -140,8 +137,7 @@ function apiAddVisit(payload) {
 function apiListVisits(payload) {
   const limit = (payload && payload.limit) || 20;
   const rows = readSheet(SHEET_NAMES.VISITS);
-  // 新しい順に
-  rows.sort((a, b) => (b.visited_at || '').localeCompare(a.visited_at || ''));
+  rows.sort((a, b) => String(b.visited_at || '').localeCompare(String(a.visited_at || '')));
   return rows.slice(0, limit);
 }
 
@@ -189,7 +185,7 @@ function apiAddFacilityOp(payload) {
 function apiListFacilityOps(payload) {
   const limit = (payload && payload.limit) || 20;
   const rows = readSheet(SHEET_NAMES.FACILITY_OPS);
-  rows.sort((a, b) => (b.operated_at || '').localeCompare(a.operated_at || ''));
+  rows.sort((a, b) => String(b.operated_at || '').localeCompare(String(a.operated_at || '')));
   return rows.slice(0, limit);
 }
 
@@ -221,10 +217,9 @@ function apiAddNote(payload) {
 
 function apiListNotes() {
   const rows = readSheet(SHEET_NAMES.NOTES);
-  // ピン留めを上、その後は更新日の新しい順
   rows.sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    return (b.updated_at || '').localeCompare(a.updated_at || '');
+    return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
   });
   return rows;
 }
@@ -257,25 +252,23 @@ function readSheet(sheetName) {
   return values.slice(1).map(row => rowToObject(headers, row));
 }
 
+function rowToObject(headers, row) {
+  const obj = {};
+  headers.forEach((h, i) => { obj[h] = row[i]; });
+  return obj;
+}
+
 /**
  * シート内で一意な ID を生成。prefix_001 形式。
- * シートの既存行数 + 1 を連番として使う(簡易実装、十分な衝突回避)。
  */
 function generateId(prefix, sheet) {
   const lastRow = sheet.getLastRow();
-  // ヘッダー1行を引いた行数 + 1
   const seq = (lastRow === 0 ? 0 : lastRow - 1) + 1;
   return `${prefix}_${String(seq).padStart(3, '0')}`;
 }
 
 /**
  * Data URL を Drive にアップロード。
- * 年フォルダ・サブフォルダ(見回り写真 / 共用設備写真)に振り分ける。
- *
- * @param {string} dataUrl - "data:image/jpeg;base64,..."
- * @param {string} filename - 保存ファイル名
- * @param {string} subFolderName - "見回り写真" | "共用設備写真"
- * @returns {object} { url, file_id }
  */
 function uploadDataUrlToDrive(dataUrl, filename, subFolderName) {
   const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
@@ -299,24 +292,21 @@ function uploadDataUrlToDrive(dataUrl, filename, subFolderName) {
   return { url: file.getUrl(), file_id: file.getId() };
 }
 
-/**
- * 指定フォルダ内のサブフォルダを取得、なければ作成。
- */
 function getOrCreateSubFolder(parentFolder, name) {
   const it = parentFolder.getFoldersByName(name);
   if (it.hasNext()) return it.next();
   return parentFolder.createFolder(name);
 }
 
-/**
- * ISO文字列から YYYYMMDD_HHMM 形式に変換。
- */
 function formatDateForFile(isoString) {
   const d = new Date(isoString);
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
 }
 
+// ─────────────────────────────────────────
+// Step 1 / Step 2 で追加された API
+// ─────────────────────────────────────────
 
 function apiListDutyMaster() {
   const rows = readSheet(SHEET_NAMES.DUTY_MASTER);
@@ -332,9 +322,6 @@ function apiListDutyMaster() {
   }));
 }
 
-/**
- * 季節別目標水位の取得。
- */
 function apiListSeasonTargets() {
   return readSheet(SHEET_NAMES.SEASON_TARGETS);
 }
@@ -343,36 +330,37 @@ function apiListSeasonTargets() {
  * ホーム画面用の今日のコンテキストを一括取得。
  * 1リクエストで済むようにまとめる(田んぼでの通信を減らす目的)。
  *
- * @returns {object} {
- *   today: {date, day_of_week, today_duty: [...members]},
- *   target: {target_label, period_label, description} | null,
- *   latest_visit: {...} | null,
- *   recent_visits: [...] (3件),
- *   pending_tsutsumi: [...] (未完了の堤 開けた、新しい順),
- *   recent_facility_ops: [...] (直近の共用設備操作 2件)
- * }
+ * パフォーマンス最適化:
+ * - 全シートを1回ずつだけ読む(readSheet の呼び出しを最小化)
+ * - members を1回だけ読んでマップ化、複数箇所で再利用
  */
 function apiGetTodayContext() {
   const now = new Date();
   const dayOfWeekMap = ['日', '月', '火', '水', '木', '金', '土'];
   const dayJp = dayOfWeekMap[now.getDay()];
 
+  // 全シートを1回ずつだけ読む
+  const members       = readSheet(SHEET_NAMES.MEMBERS);
+  const dutyMaster    = readSheet(SHEET_NAMES.DUTY_MASTER);
+  const seasonTargets = readSheet(SHEET_NAMES.SEASON_TARGETS);
+  const visits        = readSheet(SHEET_NAMES.VISITS);
+  const facilityOps   = readSheet(SHEET_NAMES.FACILITY_OPS);
+
+  const memberMap = {};
+  members.forEach(m => { memberMap[m.member_id] = m.display_name; });
+
   // 1. 本日の当番
-  const dutyRows = apiListDutyMaster();
-  const todayDuty = dutyRows
+  const todayDuty = dutyMaster
     .filter(r => r.day_of_week === dayJp)
+    .map(r => ({ ...r, display_name: memberMap[r.member_id] || '?' }))
     .sort((a, b) => Number(a.slot) - Number(b.slot));
 
-  // 2. 季節別目標水位の判定(今日が属する期間)
-  const targets = apiListSeasonTargets();
+  // 2. 季節別目標
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   const today_md = `${mm}-${dd}`;
-
   let target = null;
-  for (const t of targets) {
-    // Sheets で日付セルとして入力されると start_md / end_md は Date オブジェクトで返ってくる。
-    // 文字列(MM-DD)と Date のどちらでも比較できるように正規化する。
+  for (const t of seasonTargets) {
     const startMd = toMd_(t.start_md);
     const endMd   = toMd_(t.end_md);
     if (isWithin(today_md, startMd, endMd)) {
@@ -385,33 +373,29 @@ function apiGetTodayContext() {
     }
   }
 
-  // 3. 直近の見回り記録
-  const visits = apiListVisits({ limit: 3 });
-  const members = readSheet(SHEET_NAMES.MEMBERS);
-  const memberMap = {};
-  members.forEach(m => { memberMap[m.member_id] = m.display_name; });
-
-  // 訪問者名を付与
-  const visitsWithName = visits.map(v => ({
+  // 3. 直近の見回り(新しい順、3件)
+  const sortedVisits = visits.slice().sort((a, b) =>
+    String(b.visited_at || '').localeCompare(String(a.visited_at || ''))
+  );
+  const recentVisits = sortedVisits.slice(0, 3).map(v => ({
     ...v,
     display_name: memberMap[v.member_id] || '?'
   }));
 
   // 4. 未完了の堤(開けたまま閉めていない)
-  //    + 直近の共用設備操作 2件
-  const allOps = readSheet(SHEET_NAMES.FACILITY_OPS);
   const pairedSet = {};
-  allOps.forEach(o => {
+  facilityOps.forEach(o => {
     if (o.target === '堤' && o.action === '閉めた' && o.paired_op_id) {
       pairedSet[o.paired_op_id] = true;
     }
   });
-  const pendingTsutsumi = allOps
+  const pendingTsutsumi = facilityOps
     .filter(o => o.target === '堤' && o.action === '開けた' && !pairedSet[o.op_id])
     .map(o => ({ ...o, display_name: memberMap[o.member_id] || '?' }))
     .sort((a, b) => String(b.operated_at || '').localeCompare(String(a.operated_at || '')));
 
-  const recentFacilityOps = allOps
+  // 5. 共用設備の動き(直近2件)
+  const recentFacilityOps = facilityOps
     .slice()
     .sort((a, b) => String(b.operated_at || '').localeCompare(String(a.operated_at || '')))
     .slice(0, 2)
@@ -424,4 +408,33 @@ function apiGetTodayContext() {
       today_duty: todayDuty
     },
     target: target,
-    latest_visit: visitsWithName[0] || null
+    latest_visit: recentVisits[0] || null,
+    recent_visits: recentVisits,
+    pending_tsutsumi: pendingTsutsumi,
+    recent_facility_ops: recentFacilityOps
+  };
+}
+
+/**
+ * MM-DD 形式の3つの値を比較し、today が start..end の期間内かを判定。
+ * 期間が年をまたぐケース(例: 12-15 から 01-15)にも対応。
+ */
+function isWithin(today_md, start_md, end_md) {
+  if (start_md <= end_md) {
+    return start_md <= today_md && today_md <= end_md;
+  }
+  return today_md >= start_md || today_md <= end_md;
+}
+
+/**
+ * Date オブジェクトまたは文字列を "MM-DD" 形式に正規化。
+ */
+function toMd_(value) {
+  if (value instanceof Date) {
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${m}-${d}`;
+  }
+  if (value == null) return '';
+  return String(value);
+}
