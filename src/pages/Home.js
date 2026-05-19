@@ -93,6 +93,26 @@ export function HomePage() {
           </div>
         </section>
 
+        <!-- 堤の未完了リマインダー(該当時のみ、警告色を使わずさりげなく) -->
+        ${ctx.pending_tsutsumi && ctx.pending_tsutsumi.length > 0 && html`
+          <section class="reminder-card">
+            <div class="reminder-head">
+              <div class="reminder-mark">堤</div>
+              <div class="reminder-label">開 け た ま ま</div>
+            </div>
+            <div class="reminder-body">
+              ${ctx.pending_tsutsumi.map(op => html`
+                <div class="reminder-row" key=${op.op_id}>
+                  <span class="reminder-by">${op.display_name}</span>
+                  <span class="reminder-time">${formatShort(op.operated_at)}</span>
+                  <span class="reminder-elapsed">${formatElapsed(op.operated_at)}</span>
+                </div>
+              `)}
+            </div>
+            <a class="reminder-action" href="#/facility">閉めに行く ›</a>
+          </section>
+        `}
+
         <!-- 本日の当番 -->
         <section class="section">
           <div class="sec-head">
@@ -152,54 +172,20 @@ export function HomePage() {
           }
         </section>
 
-      </main>
-
-      <${BottomNav} current="#/" />
-    </div>
-  `;
-}
-
-// 目標水位のビジュアル(SVG)
-function TargetVisual({ target }) {
-  if (!target) {
-    return html`<div class="target-empty">─</div>`;
-  }
-
-  const label = target.target_label || '';
-  // 表示パターン:中干しは水なし
-  const isDry = label.includes('中干し') || label.includes('乾');
-  const isLow = label.includes('浅め') || label.includes('低');
-  const waterTop = isDry ? 50 : (isLow ? 38 : 32);  // 水面のY座標
-
-  return html`
-    <svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="50" width="100" height="10" fill="#8b6f47" opacity="0.3"/>
-      ${!isDry && html`
-        <rect x="0" y=${waterTop} width="100" height=${50 - waterTop} fill="#7a9aa0" opacity="0.4"/>
-        <line x1="0" y1=${waterTop} x2="100" y2=${waterTop} stroke="#7a9aa0" stroke-width="1" stroke-dasharray="3,2"/>
-      `}
-      <g stroke="#6b7a3a" stroke-width="1.5" fill="none">
-        <path d="M 15 50 L 15 10 M 15 18 L 12 15 M 15 22 L 18 19"/>
-        <path d="M 38 50 L 38 8 M 38 16 L 35 13 M 38 20 L 41 17"/>
-        <path d="M 62 50 L 62 12 M 62 18 L 59 15 M 62 22 L 65 19"/>
-        <path d="M 85 50 L 85 10 M 85 18 L 82 15 M 85 22 L 88 19"/>
-      </g>
-    </svg>
-  `;
-}
-
-/**
- * Google Drive の /file/d/XXX/view URL を、画像として埋め込める形式に変換。
- * 「リンクを知っている全員」設定でも、img タグから表示するには変換が必要。
- */
-function convertDriveUrl(url) {
-  if (!url) return '';
-  const match = url.match(/\/file\/d\/([^/]+)\//);
-  if (!match) return url;
-  return `https://lh3.googleusercontent.com/d/${match[1]}=w400`;
-}
-
-function truncate(s, n) {
-  if (!s) return '';
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
+        <!-- 共用設備の動き(直近2件) -->
+        <section class="section">
+          <div class="sec-head">
+            <div class="sec-mark"></div>
+            <div class="sec-title">共 用 設 備 の 動 き</div>
+            <div class="sec-line"></div>
+            <a class="sec-action" href="#/facility">記す ›</a>
+          </div>
+          ${ctx.recent_facility_ops && ctx.recent_facility_ops.length > 0
+            ? ctx.recent_facility_ops.map(op => html`
+              <div class="facility-item" key=${op.op_id}>
+                <div class=${`facility-icon ${op.target === '堤' ? (op.action === '開けた' ? 'open' : 'close') : 'other'}`}>
+                  ${(op.target || '').charAt(0)}
+                </div>
+                <div class="facility-info">
+                  <div class="facility-top">
+                    <div class=

@@ -347,7 +347,9 @@ function apiListSeasonTargets() {
  *   today: {date, day_of_week, today_duty: [...members]},
  *   target: {target_label, period_label, description} | null,
  *   latest_visit: {...} | null,
- *   recent_visits: [...] (3件)
+ *   recent_visits: [...] (3件),
+ *   pending_tsutsumi: [...] (未完了の堤 開けた、新しい順),
+ *   recent_facility_ops: [...] (直近の共用設備操作 2件)
  * }
  */
 function apiGetTodayContext() {
@@ -395,6 +397,26 @@ function apiGetTodayContext() {
     display_name: memberMap[v.member_id] || '?'
   }));
 
+  // 4. 未完了の堤(開けたまま閉めていない)
+  //    + 直近の共用設備操作 2件
+  const allOps = readSheet(SHEET_NAMES.FACILITY_OPS);
+  const pairedSet = {};
+  allOps.forEach(o => {
+    if (o.target === '堤' && o.action === '閉めた' && o.paired_op_id) {
+      pairedSet[o.paired_op_id] = true;
+    }
+  });
+  const pendingTsutsumi = allOps
+    .filter(o => o.target === '堤' && o.action === '開けた' && !pairedSet[o.op_id])
+    .map(o => ({ ...o, display_name: memberMap[o.member_id] || '?' }))
+    .sort((a, b) => String(b.operated_at || '').localeCompare(String(a.operated_at || '')));
+
+  const recentFacilityOps = allOps
+    .slice()
+    .sort((a, b) => String(b.operated_at || '').localeCompare(String(a.operated_at || '')))
+    .slice(0, 2)
+    .map(o => ({ ...o, display_name: memberMap[o.member_id] || '?' }));
+
   return {
     today: {
       date_iso: now.toISOString(),
@@ -402,35 +424,4 @@ function apiGetTodayContext() {
       today_duty: todayDuty
     },
     target: target,
-    latest_visit: visitsWithName[0] || null,
-    recent_visits: visitsWithName
-  };
-}
-
-/**
- * MM-DD 形式の3つの値を比較し、today が start..end の期間内かを判定。
- * 期間が年をまたぐケース(例: 12-15 から 01-15)にも対応。
- */
-function isWithin(today_md, start_md, end_md) {
-  if (start_md <= end_md) {
-    return start_md <= today_md && today_md <= end_md;
-  }
-  // 年をまたぐ
-  return today_md >= start_md || today_md <= end_md;
-}
-
-/**
- * Date オブジェクトまたは文字列を "MM-DD" 形式に正規化。
- * - Date が来たら月日を取り出してゼロパディング
- * - 文字列(既に MM-DD 形式) ならそのまま返す
- * - その他は空文字を返す(マッチしない期間として扱われる)
- */
-function toMd_(value) {
-  if (value instanceof Date) {
-    const m = String(value.getMonth() + 1).padStart(2, '0');
-    const d = String(value.getDate()).padStart(2, '0');
-    return `${m}-${d}`;
-  }
-  if (value == null) return '';
-  return String(value);
-}
+    latest_visit: visitsWithName[0] || null

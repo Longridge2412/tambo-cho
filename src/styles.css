@@ -744,86 +744,95 @@ html, body {
 }
 
 /* ─────────────────────────────────────── */
-/* 共用設備画面 (#/facility) 専用            */
+/* 堤未完了リマインダー(ホーム画面)         */
 /* ─────────────────────────────────────── */
 
-/* 「開けた」時の控えめな注意喚起 */
-.hint-soft {
-  font-family: 'Klee One', serif;
-  font-size: 12px;
-  color: var(--sumi-fade);
-  text-align: center;
-  letter-spacing: 0.15em;
-  margin-top: 10px;
-  padding: 10px 8px;
-  background: rgba(180, 150, 100, 0.05);
+.reminder-card {
+  margin: 14px 18px 0;
+  padding: 12px 16px 14px;
+  background: linear-gradient(180deg,
+              rgba(139, 111, 71, 0.10),
+              rgba(139, 111, 71, 0.05));
+  border: 1px solid rgba(139, 111, 71, 0.25);
+  border-left: 3px solid var(--tsuchi);
   border-radius: 4px;
-  line-height: 1.6;
+  position: relative;
 }
 
-/* 「閉めた」時の対応候補セクション */
-.paired-section {
-  margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px dotted var(--washi-edge);
-}
-.paired-label {
-  font-family: 'Shippori Mincho', serif;
-  font-size: 12px;
-  color: var(--sumi-light);
-  letter-spacing: 0.2em;
+.reminder-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 8px;
 }
-.paired-empty {
-  font-family: 'Klee One', serif;
-  font-size: 12px;
-  color: var(--sumi-fade);
-  padding: 12px;
-  text-align: center;
-  background: var(--washi-warm);
-  border-radius: 4px;
-}
-.paired-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  border: 1px solid var(--washi-edge);
-  border-radius: 4px;
-  background: var(--washi);
-  cursor: pointer;
-  font-family: 'Noto Serif JP', serif;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.paired-item:hover {
-  background: var(--washi-warm);
-}
-.paired-item.active {
-  background: var(--sumi);
+
+.reminder-mark {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 16px;
   color: var(--washi);
-  border-color: var(--sumi);
+  background: var(--tsuchi-deep);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  letter-spacing: 0;
 }
-.paired-by {
+
+.reminder-label {
+  font-family: 'Shippori Mincho', serif;
   font-size: 13px;
+  color: var(--tsuchi-deep);
+  letter-spacing: 0.3em;
   font-weight: 600;
+}
+
+.reminder-body {
+  padding-left: 40px;
+}
+
+.reminder-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 13px;
+  line-height: 2;
+  color: var(--sumi);
+}
+
+.reminder-by {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.reminder-time {
+  font-size: 11px;
+  color: var(--sumi-light);
+  font-family: 'Klee One', serif;
+}
+
+.reminder-elapsed {
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-left: auto;
+  font-family: 'Klee One', serif;
+}
+
+.reminder-action {
+  display: inline-block;
+  margin-top: 10px;
+  margin-left: 40px;
+  font-size: 12px;
+  color: var(--tsuchi-deep);
+  text-decoration: none;
+  font-family: 'Klee One', serif;
   letter-spacing: 0.1em;
 }
-.paired-time {
-  font-size: 11px;
-  color: var(--sumi-fade);
-  margin-top: 2px;
-  font-family: 'Klee One', serif;
+.reminder-action:hover {
+  color: var(--sumi);
 }
-.paired-item.active .paired-time {
-  color: var(--washi-deep);
-}
-.paired-reason {
-  font-size: 11px;
-  color: var(--sumi-fade);
-  margin-top: 4px;
-  font-style: italic;
-}
-.paired-item.active .paired-reason {
-  color: var(--washi-deep);
-}
+
+/* ──────────────────────────────�
