@@ -1065,3 +1065,112 @@ html, body {
 .paired-item.active .paired-reason {
   color: var(--washi-deep);
 }
+
+/* ─────────────────────────────────────── */
+/* 覚書画面 (#/notes)                        */
+/* ─────────────────────────────────────── */
+
+.note-card {
+  margin: 0 18px 10px;
+  padding: 14px 16px;
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  position: relative;
+}
+.note-card.pinned {
+  background: linear-gradient(180deg, rgba(176,74,62,0.06), rgba(176,74,62,0.02));
+  border-color: rgba(176,74,62,0.30);
+  border-left: 3px solid var(--shu);
+}
+.note-pin {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: var(--shu);
+  color: var(--washi);
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.note-content {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--sumi);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.note-meta {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dotted var(--washi-edge);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.note-by {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  font-weight: 600;
+}
+.note-date {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-left: auto;
+}
+.note-textarea {
+  min-height: 140px;
+  line-height: 1.9;
+}
+.pin-toggle-row {
+  display: flex;
+}
+.pin-hint {
+  margin-top: 6px;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: var(--shu);
+  color: var(--washi);
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(138,58,48,0.4);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.fab:hover { background: var(--shu-deep); }
+.fab:active { transform: scale(0.94); }
+.fab-mark {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+}
+.fab-label {
+  font-family: 'Klee One', serif;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}

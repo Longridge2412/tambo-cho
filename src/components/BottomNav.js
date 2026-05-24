@@ -1,7 +1,7 @@
 /**
  * 下部ナビゲーション(漢字単字)
  *
- * Step 2 で「樋(設備)」を有効化。残り3つはこれから。
+ * Step 2 で「樋(設備)」「覚(覚書)」を有効化。
  */
 
 const { createElement: h } = React;
@@ -12,7 +12,7 @@ const ITEMS = [
   { route: '#/visit',  kanji: '見', label: '見回り',  enabled: true },
   { route: '#/facility', kanji: '樋', label: '設備',  enabled: true },
   { route: '#/duty',   kanji: '番', label: '当番',    enabled: false },
-  { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: false },
+  { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: true },
   { route: '#/history',kanji: '綴', label: '綴り',    enabled: false }
 ];
 

@@ -11,6 +11,7 @@ const { createRoot } = ReactDOM;
 import { HomePage } from './pages/Home.js';
 import { VisitPage } from './pages/Visit.js';
 import { FacilityPage } from './pages/Facility.js';
+import { NotesPage } from './pages/Notes.js';
 
 const html = htm.bind(h);
 
@@ -28,6 +29,8 @@ function App() {
       return html`<${VisitPage} />`;
     case '#/facility':
       return html`<${FacilityPage} />`;
+    case '#/notes':
+      return html`<${NotesPage} />`;
     case '#/':
     default:
       return html`<${HomePage} />`;
