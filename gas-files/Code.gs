@@ -432,4 +432,18 @@ function isWithin(today_md, start_md, end_md) {
   if (start_md <= end_md) {
     return start_md <= today_md && today_md <= end_md;
   }
-  return today_md >= start_md || 
+  return today_md >= start_md || today_md <= end_md;
+}
+
+/**
+ * Date オブジェクトまたは文字列を "MM-DD" 形式に正規化。
+ */
+function toMd_(value) {
+  if (value instanceof Date) {
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${m}-${d}`;
+  }
+  if (value == null) return '';
+  return String(value);
+}
