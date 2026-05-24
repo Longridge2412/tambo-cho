@@ -14,18 +14,44 @@ import { GAS_URL } from './config.js';
  * @returns {Promise<any>} レスポンスの data 部分
  */
 export async function callApi(action, payload = {}) {
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action, payload }),
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    redirect: 'follow'
-  });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  // 20秒で諦める(「読み込み中」のまま無限に固まらないように)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+  let res;
+  try {
+    res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, payload }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      redirect: 'follow',
+      signal: controller.signal
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`[${action}] 20秒以内に応答がありませんでした。GAS が遅いか、URL が違う可能性。`);
+    }
+    throw new Error(`[${action}] 通信できませんでした: ${err.message}`);
   }
-  const json = await res.json();
+  clearTimeout(timeoutId);
+
+  if (!res.ok) {
+    throw new Error(`[${action}] HTTP ${res.status}: ${res.statusText}`);
+  }
+
+  // レスポンスをまずテキストで受けて、JSON でなければ中身の先頭を見せる
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    const head = text.slice(0, 160).replace(/\s+/g, ' ');
+    throw new Error(`[${action}] サーバーが JSON 以外を返しました。先頭160字: ${head}`);
+  }
+
   if (!json.ok) {
-    throw new Error(json.error || 'Unknown API error');
+    throw new Error(`[${action}] ${json.error || 'Unknown API error'}`);
   }
   return json.data;
 }

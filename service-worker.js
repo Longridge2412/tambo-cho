@@ -9,7 +9,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v5';
+const CACHE_NAME = 'tambo-cho-v6';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -64,3 +64,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 同一オリジンの静的ファイルは「network-first, cache fallback」
+  //   → 通常時は最新を取りに行き、キャッシュも更新
+  //   → 通信失敗時のみキャッシュから返す
+  event.respondWith(
+    fetch(event.request)
+      .then(res => {
+        if (res && res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(event.request).then(cached =>
+          cached || caches.match('./index.html')
+        )
+      )
+  );
+});
