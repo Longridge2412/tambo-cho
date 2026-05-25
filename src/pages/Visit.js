@@ -1,10 +1,8 @@
 /**
  * 見回り記録画面
  *
- * 構成:
- *   - やることリスト(リファレンス、朝/夕で切替)
- *   - 入力フォーム
- *   - 送信後の LINE 共有テキスト
+ * 田んぼ2枚(三畝・一反)それぞれに写真と水位を記録。
+ * カイヌマ疎水の状態・自由メモは共通。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -34,11 +32,14 @@ const EVENING_TASKS = [
 export function VisitPage() {
   const [members, setMembers] = useState([]);
   const [memberId, setMemberId] = useState('');
-  const [waterEval, setWaterEval] = useState('適');
+  const [eval1, setEval1] = useState('適');
+  const [eval2, setEval2] = useState('適');
   const [streamStatus, setStreamStatus] = useState('通常');
   const [freeNote, setFreeNote] = useState('');
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFile1, setPhotoFile1] = useState(null);
+  const [photoPreview1, setPhotoPreview1] = useState(null);
+  const [photoFile2, setPhotoFile2] = useState(null);
+  const [photoPreview2, setPhotoPreview2] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState(null);
@@ -51,17 +52,14 @@ export function VisitPage() {
       .catch(err => setError(`メンバー取得失敗: ${err.message}`));
   }, []);
 
-  const handlePhotoChange = async (e) => {
+  const handlePhoto = (field, e) => {
     const file = e.target.files[0];
-    if (!file) {
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      return;
-    }
-    setPhotoFile(file);
-    // プレビュー(圧縮前のサムネ)
+    const setFile = field === 1 ? setPhotoFile1 : setPhotoFile2;
+    const setPrev = field === 1 ? setPhotoPreview1 : setPhotoPreview2;
+    if (!file) { setFile(null); setPrev(null); return; }
+    setFile(file);
     const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreview(ev.target.result);
+    reader.onload = (ev) => setPrev(ev.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -72,25 +70,23 @@ export function VisitPage() {
     }
     setSubmitting(true);
     setError(null);
-
     try {
-      let photoDataUrl = null;
-      if (photoFile) {
-        photoDataUrl = await compressImageToDataUrl(photoFile);
-      }
+      let photo1 = null, photo2 = null;
+      if (photoFile1) photo1 = await compressImageToDataUrl(photoFile1);
+      if (photoFile2) photo2 = await compressImageToDataUrl(photoFile2);
 
       const visit = await api.addVisit({
         member_id: memberId,
-        water_level_eval: waterEval,
+        water_level_eval: eval1,
+        field2_eval: eval2,
         stream_status: streamStatus,
         free_note: freeNote,
-        photo_data_url: photoDataUrl
+        photo_data_url: photo1,
+        field2_photo_data_url: photo2
       });
 
-      // 共有テキスト生成
       const memberName = members.find(m => m.member_id === memberId)?.display_name || '?';
       const shareText = buildVisitShareText(visit, memberName);
-
       setSubmitted({ visit, shareText, memberName });
     } catch (err) {
       setError(`送信失敗: ${err.message}`);
@@ -99,15 +95,50 @@ export function VisitPage() {
     }
   };
 
-  // 送信完了画面
   if (submitted) {
     return html`<${SubmittedView} data=${submitted} onReset=${() => {
       setSubmitted(null);
-      setPhotoFile(null);
-      setPhotoPreview(null);
+      setPhotoFile1(null); setPhotoPreview1(null);
+      setPhotoFile2(null); setPhotoPreview2(null);
       setFreeNote('');
     }} />`;
   }
+
+  const fieldBlock = (field, label, evalVal, setEval, preview) => html`
+    <div class="field-block">
+      <div class="field-block-head">${label}</div>
+      <div class="form-group">
+        <div class="f-label">水 位 の 写 真 <span class="f-hint">稲と定規を当てて</span></div>
+        ${preview
+          ? html`
+            <div class="photo-preview" onClick=${() => document.getElementById(`photo-${field}`).click()}>
+              <img src=${preview} alt="プレビュー"/>
+              <div class="photo-preview-overlay">タップで変更</div>
+            </div>
+          `
+          : html`
+            <label class="photo-up" for=${`photo-${field}`}>
+              <div class="photo-up-icon">+</div>
+              <div class="photo-up-label">写 真 を 選 ぶ</div>
+              <div class="photo-up-hint">撮影 または アルバムから</div>
+            </label>
+          `
+        }
+        <input id=${`photo-${field}`} type="file" accept="image/*"
+          onChange=${e => handlePhoto(field, e)} style=${{display: 'none'}}/>
+      </div>
+      <div class="form-group">
+        <div class="f-label">水 位</div>
+        <div class="toggle-group">
+          ${['高', '適', '低'].map(opt => html`
+            <button key=${opt} type="button"
+              class=${`toggle-btn ${evalVal === opt ? 'active' : ''}`}
+              onClick=${() => setEval(opt)}>${opt}</button>
+          `)}
+        </div>
+      </div>
+    </div>
+  `;
 
   return html`
     <div class="screen">
@@ -115,7 +146,6 @@ export function VisitPage() {
 
       <main class="screen-body">
 
-        <!-- やることリスト -->
         <section class="tasks-card">
           <div class="tasks-head">
             <span class="tasks-period ${period}">
@@ -130,7 +160,6 @@ export function VisitPage() {
           </ul>
         </section>
 
-        <!-- フォーム -->
         <section class="form-section">
 
           <div class="form-group">
@@ -141,44 +170,14 @@ export function VisitPage() {
             </select>
           </div>
 
-          <div class="form-group">
-            <div class="f-label">水 位 の 写 真 <span class="f-hint">稲と定規を当てて</span></div>
-            ${photoPreview
-              ? html`
-                <div class="photo-preview" onClick=${() => document.getElementById('photo-input').click()}>
-                  <img src=${photoPreview} alt="プレビュー"/>
-                  <div class="photo-preview-overlay">タップで変更</div>
-                </div>
-              `
-              : html`
-                <label class="photo-up" for="photo-input">
-                  <div class="photo-up-icon">+</div>
-                  <div class="photo-up-label">撮 影 す る</div>
-                  <div class="photo-up-hint">またはアルバムから</div>
-                </label>
-              `
-            }
-            <input id="photo-input" type="file" accept="image/*" onChange=${handlePhotoChange} style=${{display: 'none'}}/>
-          </div>
+          ${fieldBlock(1, '三 畝 の 田', eval1, setEval1, photoPreview1)}
+          ${fieldBlock(2, '一 反 の 田', eval2, setEval2, photoPreview2)}
 
           <div class="form-group">
-            <div class="f-label">水 位</div>
-            <div class="toggle-group">
-              ${['高', '適', '低'].map(opt => html`
-                <button key=${opt}
-                  type="button"
-                  class=${`toggle-btn ${waterEval === opt ? 'active' : ''}`}
-                  onClick=${() => setWaterEval(opt)}>${opt}</button>
-              `)}
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="f-label">カイヌマ疎水</div>
+            <div class="f-label">カ イ ヌ マ 疎 水</div>
             <div class="toggle-group">
               ${['通常', '弱い', 'ほぼなし'].map(opt => html`
-                <button key=${opt}
-                  type="button"
+                <button key=${opt} type="button"
                   class=${`toggle-btn ${streamStatus === opt ? 'active' : ''}`}
                   onClick=${() => setStreamStatus(opt)}>${opt}</button>
               `)}
@@ -210,7 +209,6 @@ export function VisitPage() {
   `;
 }
 
-// 送信完了画面
 function SubmittedView({ data, onReset }) {
   const [copied, setCopied] = useState(false);
 

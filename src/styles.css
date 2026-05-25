@@ -1498,3 +1498,22 @@ html, body {
   text-align: center;
   letter-spacing: 0.15em;
 }
+
+/* 見回り:田んぼ別ブロック */
+.field-block {
+  margin-bottom: 10px;
+  padding: 12px 14px 4px;
+  background: rgba(180, 150, 100, 0.05);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+}
+.field-block-head {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--washi-edge);
+}

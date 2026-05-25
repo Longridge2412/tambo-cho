@@ -98,6 +98,18 @@ export function formatElapsed(dateInput) {
 }
 
 /**
+ * 経過ミリ秒を「○時間○分」表記に。
+ */
+export function formatDuration(ms) {
+  const totalMin = Math.round(ms / 60000);
+  if (totalMin < 1) return '1分未満';
+  if (totalMin < 60) return `${totalMin}分`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m === 0 ? `${h}時間` : `${h}時間${m}分`;
+}
+
+/**
  * 短い日付表記(5/15 7:15)
  */
 export function formatShort(dateInput) {
@@ -151,7 +163,9 @@ export function buildVisitShareText(visit, memberName) {
     `🌾 田んぼ報告 ${memberName}`,
     `${dateStr} ${timeStr}(${period})`,
     ``,
-    `【状態】水位:${visit.water_level_eval || '?'} / カイヌマ疎水:${visit.stream_status || '?'}`
+    `【三畝の田】水位:${visit.water_level_eval || '?'}`,
+    `【一反の田】水位:${visit.field2_eval || '?'}`,
+    `カイヌマ疎水:${visit.stream_status || '?'}`
   ];
 
   if (visit.free_note && visit.free_note.trim()) {
@@ -204,8 +218,10 @@ export function buildFacilityShareText(op, memberName, pairedOp) {
   if (op.target === '堤' && op.action === '閉めた' && pairedOp) {
     const od = new Date(pairedOp.operated_at);
     const odStr = `${od.getMonth()+1}/${od.getDate()} ${String(od.getHours()).padStart(2,'0')}:${String(od.getMinutes()).padStart(2,'0')}`;
+    const durMs = d.getTime() - od.getTime();
     lines.push('');
     lines.push(`(${pairedOp.display_name || pairedOp.member_id} が ${odStr} に開けたものに対応)`);
+    if (durMs > 0) lines.push(`開けていた時間:${formatDuration(durMs)}`);
   }
 
   return lines.join('\n');

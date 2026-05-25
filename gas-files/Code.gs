@@ -114,11 +114,17 @@ function apiAddVisit(payload) {
   const visit_id = generateId('v', sheet);
   const visited_at = payload.visited_at || new Date().toISOString();
 
+  // 田んぼ1(3畝)の写真
   let photo_url = '';
   if (payload.photo_data_url) {
-    const filename = `${formatDateForFile(visited_at)}_${payload.member_id}.jpg`;
-    const uploaded = uploadDataUrlToDrive(payload.photo_data_url, filename, '見回り写真');
-    photo_url = uploaded.url;
+    const filename = `${formatDateForFile(visited_at)}_${payload.member_id}_3se.jpg`;
+    photo_url = uploadDataUrlToDrive(payload.photo_data_url, filename, '見回り写真').url;
+  }
+  // 田んぼ2(1反)の写真
+  let photo_url_2 = '';
+  if (payload.field2_photo_data_url) {
+    const filename = `${formatDateForFile(visited_at)}_${payload.member_id}_1tan.jpg`;
+    photo_url_2 = uploadDataUrlToDrive(payload.field2_photo_data_url, filename, '見回り写真').url;
   }
 
   sheet.appendRow([
@@ -128,7 +134,9 @@ function apiAddVisit(payload) {
     photo_url,
     payload.water_level_eval || '',
     payload.stream_status || '',
-    payload.free_note || ''
+    payload.free_note || '',
+    photo_url_2,
+    payload.field2_eval || ''
   ]);
 
   return {
@@ -136,7 +144,9 @@ function apiAddVisit(payload) {
     water_level_photo_url: photo_url,
     water_level_eval: payload.water_level_eval || '',
     stream_status: payload.stream_status || '',
-    free_note: payload.free_note || ''
+    free_note: payload.free_note || '',
+    field2_photo_url: photo_url_2,
+    field2_eval: payload.field2_eval || ''
   };
 }
 

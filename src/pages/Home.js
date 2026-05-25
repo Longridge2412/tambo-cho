@@ -87,7 +87,8 @@ export function HomePage() {
                     <div class="mizu-main">${latest.display_name} ${formatShort(latest.visited_at).split(' ')[0]}</div>
                     <div class="mizu-sub">${formatElapsed(latest.visited_at)}</div>
                     <div class="mizu-tags">
-                      ${latest.water_level_eval && html`<span class="mizu-tag">水 ${latest.water_level_eval}</span>`}
+                      ${latest.water_level_eval && html`<span class="mizu-tag">三畝 ${latest.water_level_eval}</span>`}
+                      ${latest.field2_eval && html`<span class="mizu-tag">一反 ${latest.field2_eval}</span>`}
                       ${latest.stream_status && html`<span class="mizu-tag water">疎水 ${latest.stream_status}</span>`}
                     </div>
                   `
@@ -177,7 +178,8 @@ export function HomePage() {
                     <div class="visit-time">${formatShort(v.visited_at)}</div>
                   </div>
                   <div class="visit-note">
-                    ${v.water_level_eval && html`<span class="visit-tag">水 ${v.water_level_eval}</span>`}
+                    ${v.water_level_eval && html`<span class="visit-tag">三畝 ${v.water_level_eval}</span>`}
+                    ${v.field2_eval && html`<span class="visit-tag">一反 ${v.field2_eval}</span>`}
                     ${v.stream_status && html`<span class="visit-tag water">疎水 ${v.stream_status}</span>`}
                     ${v.free_note && html`<span class="visit-free">${truncate(v.free_note, 30)}</span>`}
                   </div>

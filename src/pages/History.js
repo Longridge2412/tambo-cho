@@ -13,7 +13,7 @@ const { createElement: h, useState, useEffect } = React;
 const html = htm.bind(h);
 
 import { api } from '../api.js';
-import { formatShort } from '../utils.js';
+import { formatShort, formatDuration } from '../utils.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
 
@@ -67,7 +67,8 @@ function VisitRow({ item }) {
           <span class="hist-time">${formatShort(item.timestamp)}</span>
         </div>
         <div class="hist-note">
-          ${v.water_level_eval && html`<span class="hist-tag">水 ${v.water_level_eval}</span>`}
+          ${v.water_level_eval && html`<span class="hist-tag">三畝 ${v.water_level_eval}</span>`}
+          ${v.field2_eval && html`<span class="hist-tag">一反 ${v.field2_eval}</span>`}
           ${v.stream_status && html`<span class="hist-tag water">疎水 ${v.stream_status}</span>`}
           ${v.free_note && html`<span class="hist-free">${truncate(v.free_note, 40)}</span>`}
         </div>
@@ -77,8 +78,13 @@ function VisitRow({ item }) {
 }
 
 // 共用設備操作の1行
-function FacilityRow({ item }) {
+function FacilityRow({ item, pairedOp }) {
   const o = item.data;
+  let elapsed = '';
+  if (o.target === '堤' && o.action === '閉めた' && pairedOp && pairedOp.operated_at) {
+    const ms = new Date(o.operated_at).getTime() - new Date(pairedOp.operated_at).getTime();
+    if (ms > 0) elapsed = formatDuration(ms);
+  }
   return html`
     <div class="hist-item">
       ${o.photo_url
@@ -93,6 +99,7 @@ function FacilityRow({ item }) {
         </div>
         <div class="hist-note">
           <span class="hist-tag">${o.target}${o.action ? ' ' + o.action : ''}</span>
+          ${elapsed && html`<span class="hist-tag water">${elapsed} 開けていた</span>`}
           ${o.reason && html`<span class="hist-free">${truncate(o.reason, 40)}</span>`}
         </div>
       </div>
@@ -153,6 +160,10 @@ export function HistoryPage() {
     `;
   }
 
+  // 閉めた操作 → 開けた操作を引くためのマップ
+  const opById = {};
+  items.forEach(x => { if (x.type === 'facility') opById[x.id] = x.data; });
+
   // フィルタ適用
   const filtered = items.filter(x => filter === 'all' || x.type === filter);
 
@@ -195,7 +206,8 @@ export function HistoryPage() {
               ${g.items.map(item => html`
                 ${item.type === 'visit'
                   ? html`<${VisitRow} key=${item.id} item=${item} />`
-                  : html`<${FacilityRow} key=${item.id} item=${item} />`}
+                  : html`<${FacilityRow} key=${item.id} item=${item}
+                      pairedOp=${item.data.paired_op_id ? opById[item.data.paired_op_id] : null} />`}
               `)}
             </section>
           `)
