@@ -8,13 +8,9 @@
 import { GAS_URL } from './config.js';
 
 /**
- * GAS の任意のアクションを呼び出す。
- * @param {string} action - dispatch される action 名
- * @param {object} payload - パラメータ
- * @returns {Promise<any>} レスポンスの data 部分
+ * GAS の任意のアクションを呼び出す。20秒でタイムアウト。
  */
 export async function callApi(action, payload = {}) {
-  // 20秒で諦める(「読み込み中」のまま無限に固まらないように)
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
@@ -40,7 +36,6 @@ export async function callApi(action, payload = {}) {
     throw new Error(`[${action}] HTTP ${res.status}: ${res.statusText}`);
   }
 
-  // レスポンスをまずテキストで受けて、JSON でなければ中身の先頭を見せる
   const text = await res.text();
   let json;
   try {
@@ -68,5 +63,11 @@ export const api = {
   addFacilityOp:      (payload) => callApi('addFacilityOp', payload),
   listFacilityOps:    (payload) => callApi('listFacilityOps', payload),
   addNote:            (payload) => callApi('addNote', payload),
-  listNotes:          () => callApi('listNotes')
+  listNotes:          () => callApi('listNotes'),
+  listDutyWeek:       (payload) => callApi('listDutyWeek', payload),
+  updateDutyWeek:     (payload) => callApi('updateDutyWeek', payload),
+  listDutySwaps:      () => callApi('listDutySwaps'),
+  addDutySwap:        (payload) => callApi('addDutySwap', payload),
+  acceptDutySwap:     (payload) => callApi('acceptDutySwap', payload),
+  updateDutyMaster:   (payload) => callApi('updateDutyMaster', payload)
 };
