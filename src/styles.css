@@ -1517,3 +1517,12 @@ html, body {
   padding-bottom: 6px;
   border-bottom: 1px dotted var(--washi-edge);
 }
+
+/* 名前リスト等の読み込み中ヒント */
+.f-loading-hint {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}

@@ -31,6 +31,7 @@ const EVENING_TASKS = [
 
 export function VisitPage() {
   const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(true);
   const [memberId, setMemberId] = useState('');
   const [eval1, setEval1] = useState('適');
   const [eval2, setEval2] = useState('適');
@@ -48,8 +49,8 @@ export function VisitPage() {
 
   useEffect(() => {
     api.listMembers()
-      .then(data => setMembers(data))
-      .catch(err => setError(`メンバー取得失敗: ${err.message}`));
+      .then(data => { setMembers(data); setMembersLoading(false); })
+      .catch(err => { setError(`メンバー取得失敗: ${err.message}`); setMembersLoading(false); });
   }, []);
 
   const handlePhoto = (field, e) => {
@@ -164,10 +165,13 @@ export function VisitPage() {
 
           <div class="form-group">
             <div class="f-label">名 前</div>
-            <select class="f-input f-select" value=${memberId} onChange=${e => setMemberId(e.target.value)}>
-              <option value="">── 選択 ──</option>
+            <select class="f-input f-select" value=${memberId}
+              disabled=${membersLoading}
+              onChange=${e => setMemberId(e.target.value)}>
+              <option value="">${membersLoading ? '読み込み中…' : '── 選択 ──'}</option>
               ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
             </select>
+            ${membersLoading && html`<div class="f-loading-hint">名前リストを読み込んでいます…</div>`}
           </div>
 
           ${fieldBlock(1, '三 畝 の 田', eval1, setEval1, photoPreview1)}
