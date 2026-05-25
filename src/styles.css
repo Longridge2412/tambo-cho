@@ -1303,3 +1303,182 @@ html, body {
   font-size: 12px;
   color: var(--sumi-light);
 }
+
+/* ─────────────────────────────────────── */
+/* 当番カレンダー画面 (#/duty)               */
+/* ─────────────────────────────────────── */
+
+.duty-operator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 18px 0;
+  padding: 8px 12px;
+  background: var(--washi-warm);
+  border-radius: 4px;
+}
+.duty-operator-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  letter-spacing: 0.2em;
+  flex-shrink: 0;
+}
+.duty-operator-select {
+  flex: 1;
+  margin: 0;
+}
+
+.duty-note-line {
+  margin: 12px 18px 0;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  line-height: 1.6;
+}
+.duty-legend {
+  margin: 8px 18px 0;
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+}
+
+.week-nav {
+  display: flex;
+  gap: 6px;
+  padding: 4px 18px 10px;
+}
+.week-nav-btn {
+  flex: 1;
+  padding: 7px 4px;
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.week-nav-btn.now {
+  color: var(--shu);
+  border-color: var(--shu-light);
+}
+
+.duty-grid {
+  margin: 0 18px;
+}
+.duty-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--washi-edge);
+}
+.duty-row:last-child {
+  border-bottom: none;
+}
+.duty-dow {
+  flex-shrink: 0;
+  width: 48px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sumi);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.duty-md {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--sumi-fade);
+}
+.duty-cell-select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 6px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 13px;
+  color: var(--sumi);
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+}
+.duty-cell-select.modified {
+  background: rgba(176, 74, 62, 0.06);
+  border-color: rgba(176, 74, 62, 0.35);
+}
+
+.swap-group-label {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+  letter-spacing: 0.2em;
+  padding: 8px 18px 4px;
+}
+.swap-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 18px 6px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--washi-edge);
+  background: var(--washi);
+}
+.swap-item.pending {
+  border-left: 3px solid var(--tsuchi);
+}
+.swap-item.done {
+  opacity: 0.7;
+  border-left: 3px solid var(--asagi);
+}
+.swap-info {
+  flex: 1;
+  min-width: 0;
+}
+.swap-main {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  color: var(--sumi);
+}
+.swap-note {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-top: 2px;
+}
+.swap-accept-btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  color: var(--washi);
+  background: var(--koke);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.swap-form {
+  margin: 8px 18px 0;
+  padding: 12px;
+  background: var(--washi-warm);
+  border-radius: 4px;
+}
+.duty-add-swap,
+.duty-master-link {
+  margin: 8px 18px 0;
+}
+
+.duty-flash {
+  margin: 10px 18px 0;
+  padding: 8px 12px;
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--koke-deep);
+  background: rgba(107, 122, 58, 0.10);
+  border-radius: 4px;
+  text-align: center;
+}

@@ -13,6 +13,7 @@ import { VisitPage } from './pages/Visit.js';
 import { FacilityPage } from './pages/Facility.js';
 import { NotesPage } from './pages/Notes.js';
 import { HistoryPage } from './pages/History.js';
+import { DutyPage } from './pages/Duty.js';
 
 const html = htm.bind(h);
 
@@ -34,6 +35,8 @@ function App() {
       return html`<${NotesPage} />`;
     case '#/history':
       return html`<${HistoryPage} />`;
+    case '#/duty':
+      return html`<${DutyPage} />`;
     case '#/':
     default:
       return html`<${HomePage} />`;
