@@ -37,17 +37,12 @@
     .splash-half-inner {
       width: 100vw;
       height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background-image: url('./splash.png');
+      background-size: cover;
+      background-position: center;
     }
     .splash-right .splash-half-inner {
       margin-left: -50vw;
-    }
-    .splash-logo {
-      width: 62vw;
-      max-width: 340px;
-      height: auto;
     }
     #splash.open .splash-left {
       transform: translateX(-100%);
@@ -69,12 +64,8 @@
 </head>
 <body>
   <div id="splash">
-    <div class="splash-half splash-left">
-      <div class="splash-half-inner"><img class="splash-logo" src="./logo.png" alt=""></div>
-    </div>
-    <div class="splash-half splash-right">
-      <div class="splash-half-inner"><img class="splash-logo" src="./logo.png" alt=""></div>
-    </div>
+    <div class="splash-half splash-left"><div class="splash-half-inner"></div></div>
+    <div class="splash-half splash-right"><div class="splash-half-inner"></div></div>
   </div>
 
   <div id="root">
