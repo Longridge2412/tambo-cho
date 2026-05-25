@@ -2,7 +2,7 @@
  * 田んぼ帳 - エントリポイント
  *
  * ハッシュベースの簡易ルーティング。
- * 認証なしのオープン構成なのでルートガードも不要。
+ * 起動時はスプラッシュ(緑地ロゴ)を表示し、描画後に観音開きで閉じる。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -45,3 +45,15 @@ function App() {
 
 const root = createRoot(document.getElementById('root'));
 root.render(h(App));
+
+(function closeSplash() {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  const MIN_SHOW = 1200;
+  const start = window.__appStart || Date.now();
+  const wait = Math.max(0, MIN_SHOW - (Date.now() - start));
+  setTimeout(() => {
+    splash.classList.add('open');
+    setTimeout(() => splash.classList.add('gone'), 750);
+  }, wait);
+})();
