@@ -2,7 +2,7 @@
  * 田んぼ帳 - エントリポイント
  *
  * ハッシュベースの簡易ルーティング。
- * 起動時はスプラッシュ(緑地ロゴ)を表示し、描画後に観音開きで閉じる。
+ * 起動時はスプラッシュ(白地 NEO百ロゴ)を表示し、描画後に観音開きで閉じる。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -49,7 +49,7 @@ root.render(h(App));
 (function closeSplash() {
   const splash = document.getElementById('splash');
   if (!splash) return;
-  const MIN_SHOW = 1200;
+  const MIN_SHOW = 2500;
   const start = window.__appStart || Date.now();
   const wait = Math.max(0, MIN_SHOW - (Date.now() - start));
   setTimeout(() => {
