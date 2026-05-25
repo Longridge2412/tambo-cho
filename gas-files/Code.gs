@@ -615,18 +615,39 @@ function apiAcceptDutySwap(payload) {
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   const idxId = headers.indexOf('swap_id');
+  const idxOrig = headers.indexOf('original_member_id');
+  const idxDate = headers.indexOf('target_date');
   const idxSub = headers.indexOf('substitute_member_id');
   const idxAcc = headers.indexOf('accepted_at');
   const now = new Date().toISOString();
+
+  let targetDate = null, originalMember = null;
   for (let r = 1; r < values.length; r++) {
     if (values[r][idxId] === payload.swap_id) {
       const rowNum = r + 1;
       sheet.getRange(rowNum, idxSub + 1).setValue(payload.substitute_member_id);
       sheet.getRange(rowNum, idxAcc + 1).setValue(now);
-      return { swap_id: payload.swap_id, accepted: true };
+      targetDate = formatYmd_(new Date(values[r][idxDate]));
+      originalMember = values[r][idxOrig];
+      break;
     }
   }
-  throw new Error('swap not found: ' + payload.swap_id);
+  if (targetDate === null) throw new Error('swap not found: ' + payload.swap_id);
+
+  // 当番表も書き換え:その日に originalMember が担当している枠を substitute に
+  const slot = findDutySlot_(targetDate, originalMember);
+  let dutyUpdated = false;
+  if (slot) {
+    apiUpdateDutyWeek({
+      target_date: targetDate,
+      slot: slot,
+      member_id: payload.substitute_member_id,
+      modified_by: payload.substitute_member_id
+    });
+    dutyUpdated = true;
+  }
+
+  return { swap_id: payload.swap_id, accepted: true, duty_updated: dutyUpdated };
 }
 
 /**
@@ -651,4 +672,31 @@ function apiUpdateDutyMaster(payload) {
   }
   sheet.appendRow([payload.day_of_week, payload.member_id || '', slot]);
   return { day_of_week: payload.day_of_week, slot: slot, member_id: payload.member_id, created: true };
+}
+
+
+/**
+ * 指定日に member_id が担当している slot(1 or 2)を返す。無ければ null。
+ */
+function findDutySlot_(targetDate, memberId) {
+  const dowNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const d = new Date(targetDate + 'T00:00:00');
+  const dowJp = dowNames[d.getDay()];
+  const dutyMaster = readSheet(SHEET_NAMES.DUTY_MASTER);
+  const dutyWeek = readSheet(SHEET_NAMES.DUTY_WEEK);
+  for (let slot = 1; slot <= 2; slot++) {
+    let mid = null;
+    for (const w of dutyWeek) {
+      if (formatYmd_(new Date(w.target_date)) === targetDate && Number(w.slot) === slot) {
+        mid = w.member_id;
+        break;
+      }
+    }
+    if (mid === null) {
+      const m = dutyMaster.find(r => r.day_of_week === dowJp && Number(r.slot) === slot);
+      mid = m ? m.member_id : '';
+    }
+    if (mid === memberId) return slot;
+  }
+  return null;
 }

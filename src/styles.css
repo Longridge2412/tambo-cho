@@ -1482,3 +1482,19 @@ html, body {
   border-radius: 4px;
   text-align: center;
 }
+
+/* 当番セル(朝夕ラベル付き)*/
+.duty-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.duty-slot-label {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  text-align: center;
+  letter-spacing: 0.15em;
+}

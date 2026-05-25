@@ -193,12 +193,15 @@ export function DutyPage() {
                 ${[1, 2].map(slot => {
                   const row = masterRows.find(r => r.day_of_week === dow && Number(r.slot) === slot);
                   return html`
-                    <select key=${slot} class="duty-cell-select" disabled=${busy}
-                      value=${row ? row.member_id : ''}
-                      onChange=${e => handleMasterChange(dow, slot, e.target.value)}>
-                      <option value="">──</option>
-                      ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
-                    </select>
+                    <div class="duty-cell" key=${slot}>
+                      <div class="duty-slot-label">${slot === 1 ? '朝' : '夕'}</div>
+                      <select class="duty-cell-select" disabled=${busy}
+                        value=${row ? row.member_id : ''}
+                        onChange=${e => handleMasterChange(dow, slot, e.target.value)}>
+                        <option value="">──</option>
+                        ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
+                      </select>
+                    </div>
                   `;
                 })}
               </div>
@@ -240,14 +243,17 @@ export function DutyPage() {
               <div class="duty-row" key=${day.date}>
                 <div class="duty-dow">${day.day_of_week}<span class="duty-md">${mdLabel(day.date)}</span></div>
                 ${day.duties.map(d => html`
-                  <select key=${d.slot}
-                    class=${`duty-cell-select ${d.is_modified ? 'modified' : ''}`}
-                    disabled=${busy}
-                    value=${d.member_id}
-                    onChange=${e => handleWeekChange(day.date, d.slot, e.target.value)}>
-                    <option value="">──</option>
-                    ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
-                  </select>
+                  <div class="duty-cell" key=${d.slot}>
+                    <div class="duty-slot-label">${d.slot === 1 ? '朝' : '夕'}</div>
+                    <select
+                      class=${`duty-cell-select ${d.is_modified ? 'modified' : ''}`}
+                      disabled=${busy}
+                      value=${d.member_id}
+                      onChange=${e => handleWeekChange(day.date, d.slot, e.target.value)}>
+                      <option value="">──</option>
+                      ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
+                    </select>
+                  </div>
                 `)}
               </div>
             `)}
