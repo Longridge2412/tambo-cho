@@ -1,7 +1,7 @@
 /**
  * 下部ナビゲーション(漢字単字)
  *
- * Step 2 で「樋(設備)」「覚(覚書)」を有効化。
+ * Step 2 で全6画面を有効化。
  */
 
 const { createElement: h } = React;
@@ -13,7 +13,7 @@ const ITEMS = [
   { route: '#/facility', kanji: '樋', label: '設備',  enabled: true },
   { route: '#/duty',   kanji: '番', label: '当番',    enabled: false },
   { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: true },
-  { route: '#/history',kanji: '綴', label: '綴り',    enabled: false }
+  { route: '#/history',kanji: '綴', label: '綴り',    enabled: true }
 ];
 
 export function BottomNav({ current }) {

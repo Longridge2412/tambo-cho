@@ -12,6 +12,7 @@ import { HomePage } from './pages/Home.js';
 import { VisitPage } from './pages/Visit.js';
 import { FacilityPage } from './pages/Facility.js';
 import { NotesPage } from './pages/Notes.js';
+import { HistoryPage } from './pages/History.js';
 
 const html = htm.bind(h);
 
@@ -31,6 +32,8 @@ function App() {
       return html`<${FacilityPage} />`;
     case '#/notes':
       return html`<${NotesPage} />`;
+    case '#/history':
+      return html`<${HistoryPage} />`;
     case '#/':
     default:
       return html`<${HomePage} />`;

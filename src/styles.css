@@ -1174,3 +1174,132 @@ html, body {
   font-size: 9px;
   letter-spacing: 0.1em;
 }
+
+/* ─────────────────────────────────────── */
+/* 履歴画面 (#/history)                      */
+/* ─────────────────────────────────────── */
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px 4px;
+}
+.filter-chip {
+  flex: 1;
+  padding: 8px 4px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  color: var(--sumi-light);
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.filter-chip.active {
+  background: var(--sumi);
+  color: var(--washi);
+  border-color: var(--sumi);
+}
+
+.hist-group {
+  margin-top: 14px;
+}
+.hist-date {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sumi-light);
+  letter-spacing: 0.2em;
+  padding: 4px 18px;
+  margin-bottom: 4px;
+}
+
+.hist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px dotted var(--washi-edge);
+}
+.hist-item:last-child {
+  border-bottom: none;
+}
+
+.hist-thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--washi-warm);
+}
+.hist-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 18px;
+  color: var(--sumi-fade);
+  border: 1px solid var(--washi-edge);
+}
+
+.hist-info {
+  flex: 1;
+  min-width: 0;
+}
+.hist-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.hist-badge {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--washi);
+  letter-spacing: 0.05em;
+}
+.hist-badge.visit {
+  background: var(--koke);
+}
+.hist-badge.facility {
+  background: var(--tsuchi);
+}
+.hist-by {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sumi);
+}
+.hist-time {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-left: auto;
+}
+.hist-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.hist-tag {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  padding: 1px 7px;
+  background: var(--washi-deep);
+  border-radius: 3px;
+  color: var(--sumi-light);
+}
+.hist-tag.water {
+  background: rgba(122, 154, 160, 0.25);
+  color: var(--ai);
+}
+.hist-free {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 12px;
+  color: var(--sumi-light);
+}
