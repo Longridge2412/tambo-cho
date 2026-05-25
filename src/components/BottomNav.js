@@ -10,7 +10,7 @@ const html = htm.bind(h);
 const ITEMS = [
   { route: '#/',       kanji: '帳', label: '今日',    enabled: true },
   { route: '#/visit',  kanji: '見', label: '見回り',  enabled: true },
-  { route: '#/facility', kanji: '樋', label: '設備',  enabled: true },
+  { route: '#/facility', kanji: '水', label: '設備',  enabled: true },
   { route: '#/duty',   kanji: '番', label: '当番',    enabled: true },
   { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: true },
   { route: '#/history',kanji: '綴', label: '綴り',    enabled: true }

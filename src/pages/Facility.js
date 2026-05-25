@@ -142,7 +142,7 @@ export function FacilityPage() {
 
   return html`
     <div class="screen">
-      <${Header} title="樋" subtitle="共用設備の操作を 記す" />
+      <${Header} title="水" subtitle="共用設備の操作を 記す" />
 
       <main class="screen-body">
 
@@ -227,7 +227,7 @@ export function FacilityPage() {
                 </label>
               `
             }
-            <input id="photo-input" type="file" accept="image/*" capture="environment"
+            <input id="photo-input" type="file" accept="image/*"
               onChange=${handlePhotoChange} style=${{display: 'none'}}/>
           </div>
 
@@ -236,7 +236,7 @@ export function FacilityPage() {
             <input type="text" class="f-input"
               value=${reason}
               onChange=${e => setReason(e.target.value)}
-              placeholder="例:小川が細っていたため"/>
+              placeholder="例:カイヌマ疎水が細っていたため"/>
           </div>
 
           <div class="form-group">

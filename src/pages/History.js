@@ -68,7 +68,7 @@ function VisitRow({ item }) {
         </div>
         <div class="hist-note">
           ${v.water_level_eval && html`<span class="hist-tag">水 ${v.water_level_eval}</span>`}
-          ${v.stream_status && html`<span class="hist-tag water">小川 ${v.stream_status}</span>`}
+          ${v.stream_status && html`<span class="hist-tag water">疎水 ${v.stream_status}</span>`}
           ${v.free_note && html`<span class="hist-free">${truncate(v.free_note, 40)}</span>`}
         </div>
       </div>

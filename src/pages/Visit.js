@@ -158,7 +158,7 @@ export function VisitPage() {
                 </label>
               `
             }
-            <input id="photo-input" type="file" accept="image/*" capture="environment" onChange=${handlePhotoChange} style=${{display: 'none'}}/>
+            <input id="photo-input" type="file" accept="image/*" onChange=${handlePhotoChange} style=${{display: 'none'}}/>
           </div>
 
           <div class="form-group">
@@ -174,7 +174,7 @@ export function VisitPage() {
           </div>
 
           <div class="form-group">
-            <div class="f-label">小 川 の 水</div>
+            <div class="f-label">カイヌマ疎水</div>
             <div class="toggle-group">
               ${['通常', '弱い', 'ほぼなし'].map(opt => html`
                 <button key=${opt}

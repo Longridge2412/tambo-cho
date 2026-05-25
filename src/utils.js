@@ -151,7 +151,7 @@ export function buildVisitShareText(visit, memberName) {
     `🌾 田んぼ報告 ${memberName}`,
     `${dateStr} ${timeStr}(${period})`,
     ``,
-    `【状態】水位:${visit.water_level_eval || '?'} / 小川:${visit.stream_status || '?'}`
+    `【状態】水位:${visit.water_level_eval || '?'} / カイヌマ疎水:${visit.stream_status || '?'}`
   ];
 
   if (visit.free_note && visit.free_note.trim()) {
