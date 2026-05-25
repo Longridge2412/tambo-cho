@@ -3,8 +3,10 @@
  *
  * 構成:
  *   - 今週の当番(週送り + 直接編集)
- *   - 代行を頼む(一覧 + 新規依頼 + 受諾)
- *   - マスター当番表の編集(別ビュー、誤操作防止)
+ *   - マスター当番表の編集(別ビュー)
+ *
+ * 代行は LINE での直接連絡に任せ、アプリには載せない(シンプルさ優先)。
+ * 当番の2枠に朝夕の役割分担はつけない(2人で協力)。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -14,9 +16,6 @@ import { api } from '../api.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
 
-const DOW = ['日', '月', '火', '水', '木', '金', '土'];
-
-// その日を含む週の月曜を返す
 function getMonday(d) {
   const day = d.getDay();
   const diff = (day === 0 ? -6 : 1 - day);
@@ -29,7 +28,6 @@ function shiftDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00');
   return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
 }
-// 日付値(YYYY-MM-DD 文字列 / Date / ISO)を M/D に
 function mdLabel(v) {
   let d;
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -42,27 +40,21 @@ function mdLabel(v) {
 }
 
 export function DutyPage() {
-  const [view, setView] = useState('week');           // week / master
+  const [view, setView] = useState('week');
   const [operatorId, setOperatorId] = useState('');
   const [members, setMembers] = useState([]);
   const [weekStart, setWeekStart] = useState(ymd(getMonday(new Date())));
   const [weekData, setWeekData] = useState(null);
-  const [swaps, setSwaps] = useState([]);
   const [masterRows, setMasterRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const [swapFormOpen, setSwapFormOpen] = useState(false);
-  const [swapDate, setSwapDate] = useState('');
-  const [swapNote, setSwapNote] = useState('');
-
   useEffect(() => {
-    Promise.all([api.listMembers(), api.listDutySwaps(), api.listDutyMaster()])
-      .then(([m, s, dm]) => {
+    Promise.all([api.listMembers(), api.listDutyMaster()])
+      .then(([m, dm]) => {
         setMembers(m);
-        setSwaps(s);
         setMasterRows(dm);
         setLoading(false);
       })
@@ -113,46 +105,6 @@ export function DutyPage() {
     }
   };
 
-  const handleAddSwap = async () => {
-    if (!operatorId) { setError('上の「あなた」を選んでください'); return; }
-    if (!swapDate) { setError('代わってほしい日を選んでください'); return; }
-    setBusy(true);
-    setError(null);
-    try {
-      await api.addDutySwap({
-        target_date: swapDate,
-        original_member_id: operatorId,
-        note: swapNote
-      });
-      const s = await api.listDutySwaps();
-      setSwaps(s);
-      setSwapFormOpen(false);
-      setSwapDate('');
-      setSwapNote('');
-      flash('代行を依頼しました');
-    } catch (err) {
-      setError(`依頼に失敗しました: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleAcceptSwap = async (swapId) => {
-    if (!operatorId) { setError('上の「あなた」を選んでください'); return; }
-    setBusy(true);
-    setError(null);
-    try {
-      await api.acceptDutySwap({ swap_id: swapId, substitute_member_id: operatorId });
-      const s = await api.listDutySwaps();
-      setSwaps(s);
-      flash('代行を引き受けました');
-    } catch (err) {
-      setError(`受諾に失敗しました: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (loading) {
     return html`<div class="loading"><div class="loading-mark">番</div><div class="loading-text">読み込み中</div></div>`;
   }
@@ -193,15 +145,12 @@ export function DutyPage() {
                 ${[1, 2].map(slot => {
                   const row = masterRows.find(r => r.day_of_week === dow && Number(r.slot) === slot);
                   return html`
-                    <div class="duty-cell" key=${slot}>
-                      <div class="duty-slot-label">${slot === 1 ? '朝' : '夕'}</div>
-                      <select class="duty-cell-select" disabled=${busy}
-                        value=${row ? row.member_id : ''}
-                        onChange=${e => handleMasterChange(dow, slot, e.target.value)}>
-                        <option value="">──</option>
-                        ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
-                      </select>
-                    </div>
+                    <select key=${slot} class="duty-cell-select" disabled=${busy}
+                      value=${row ? row.member_id : ''}
+                      onChange=${e => handleMasterChange(dow, slot, e.target.value)}>
+                      <option value="">──</option>
+                      ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
+                    </select>
                   `;
                 })}
               </div>
@@ -218,12 +167,10 @@ export function DutyPage() {
 
   // ── 今週ビュー ──
   const days = weekData ? weekData.days : [];
-  const pendingSwaps = swaps.filter(s => !s.accepted_at);
-  const doneSwaps = swaps.filter(s => s.accepted_at);
 
   return html`
     <div class="screen">
-      <${Header} title="当 番" subtitle="今週の当番と 代行" />
+      <${Header} title="当 番" subtitle="今週の当番" />
       <main class="screen-body">
         ${operatorSelect}
 
@@ -243,75 +190,25 @@ export function DutyPage() {
               <div class="duty-row" key=${day.date}>
                 <div class="duty-dow">${day.day_of_week}<span class="duty-md">${mdLabel(day.date)}</span></div>
                 ${day.duties.map(d => html`
-                  <div class="duty-cell" key=${d.slot}>
-                    <div class="duty-slot-label">${d.slot === 1 ? '朝' : '夕'}</div>
-                    <select
-                      class=${`duty-cell-select ${d.is_modified ? 'modified' : ''}`}
-                      disabled=${busy}
-                      value=${d.member_id}
-                      onChange=${e => handleWeekChange(day.date, d.slot, e.target.value)}>
-                      <option value="">──</option>
-                      ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
-                    </select>
-                  </div>
+                  <select key=${d.slot}
+                    class=${`duty-cell-select ${d.is_modified ? 'modified' : ''}`}
+                    disabled=${busy}
+                    value=${d.member_id}
+                    onChange=${e => handleWeekChange(day.date, d.slot, e.target.value)}>
+                    <option value="">──</option>
+                    ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
+                  </select>
                 `)}
               </div>
             `)}
           </div>
-          <div class="duty-legend">○印のついた枠は、基本の割り当てから書き換えられています</div>
+          <div class="duty-legend">色のついた枠は、基本の割り当てから書き換えられています</div>
         </section>
 
-        <section class="section">
-          <div class="sec-head">
-            <div class="sec-mark"></div>
-            <div class="sec-title">代 行 を 頼 む</div>
-            <div class="sec-line"></div>
-          </div>
-
-          ${pendingSwaps.length > 0 && html`
-            <div class="swap-group-label">お願い中</div>
-            ${pendingSwaps.map(s => html`
-              <div class="swap-item pending" key=${s.swap_id}>
-                <div class="swap-info">
-                  <div class="swap-main">${mdLabel(s.target_date)} ・ ${s.original_name}</div>
-                  ${s.note && html`<div class="swap-note">${s.note}</div>`}
-                </div>
-                <button class="swap-accept-btn" disabled=${busy}
-                  onClick=${() => handleAcceptSwap(s.swap_id)}>受ける</button>
-              </div>
-            `)}
-          `}
-          ${doneSwaps.length > 0 && html`
-            <div class="swap-group-label">受けてもらった</div>
-            ${doneSwaps.map(s => html`
-              <div class="swap-item done" key=${s.swap_id}>
-                <div class="swap-info">
-                  <div class="swap-main">${mdLabel(s.target_date)} ・ ${s.original_name} → ${s.substitute_name}</div>
-                  ${s.note && html`<div class="swap-note">${s.note}</div>`}
-                </div>
-              </div>
-            `)}
-          `}
-          ${pendingSwaps.length === 0 && doneSwaps.length === 0 && html`<div class="empty-note">代行依頼はありません</div>`}
-
-          ${swapFormOpen
-            ? html`
-              <div class="swap-form">
-                <div class="f-label">代わってほしい日</div>
-                <select class="f-input f-select" value=${swapDate} onChange=${e => setSwapDate(e.target.value)}>
-                  <option value="">── 選択 ──</option>
-                  ${days.map(day => html`<option key=${day.date} value=${day.date}>${mdLabel(day.date)}(${day.day_of_week})</option>`)}
-                </select>
-                <div class="f-label">ひとこと <span class="f-hint">任意</span></div>
-                <input type="text" class="f-input" value=${swapNote}
-                  onChange=${e => setSwapNote(e.target.value)} placeholder="例:用事が入ってしまって"/>
-                <button class="btn-primary" disabled=${busy} onClick=${handleAddSwap}>この内容で頼む</button>
-                <button class="btn-ghost" onClick=${() => { setSwapFormOpen(false); setError(null); }}>やめる</button>
-              </div>
-            `
-            : html`<button class="btn-ghost duty-add-swap" onClick=${() => setSwapFormOpen(true)}>＋ 代行を頼む</button>`
-          }
-        </section>
+        <div class="duty-note-line">
+          急に行けなくなったときは、LINE でみんなに声をかけてください。
+          代わってもらえたら、上の表をタップして書き換えておくと記録に残ります。
+        </div>
 
         ${error && html`<div class="form-error">${error}</div>`}
         ${msg && html`<div class="duty-flash">${msg}</div>`}
