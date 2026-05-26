@@ -1,10 +1,11 @@
 /**
- * ホーム画面
+ * ホーム画面(投稿フィード)
  *
  * 構成:
- *   - 本日の水加減(目標 + 直近)
- *   - 本日の当番
- *   - 近ごろの見回り
+ *   - 上部固定:今の目安(目標水位 + 稲の暦/積算温度)
+ *   - 下部:投稿フィード(見回り + 共用設備 + 覚書 を時系列マージ)
+ *
+ * Phase A の中心画面。当番表示はカレンダータブに移譲。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -18,14 +19,27 @@ import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
   const [ctx, setCtx] = useState(null);
+  const [visits, setVisits] = useState([]);
+  const [ops, setOps] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [phenology, setPhenology] = useState(null);
   const [phenologyError, setPhenologyError] = useState(null);
 
   useEffect(() => {
-    api.getTodayContext()
-      .then(data => { setCtx(data); setLoading(false); })
+    Promise.all([
+      api.getTodayContext(),
+      api.listVisits({ limit: 50 }),
+      api.listFacilityOps({ limit: 50 }),
+      api.listNotes(),
+      api.listMembers()
+    ])
+      .then(([c, v, o, n, m]) => {
+        setCtx(c); setVisits(v); setOps(o); setNotes(n); setMembers(m);
+        setLoading(false);
+      })
       .catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
@@ -36,9 +50,7 @@ export function HomePage() {
         const rows = await api.listPaddyPhenology();
         const withProgress = await Promise.all(rows.map(async (r) => ({
           ...r,
-          progress: r.transplant_date
-            ? await getPaddyProgress(r.transplant_date, r.heading_date)
-            : null
+          progress: r.transplant_date ? await getPaddyProgress(r.transplant_date, r.heading_date) : null
         })));
         if (!cancelled) setPhenology(withProgress);
       } catch (err) {
@@ -48,7 +60,7 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return html`<div class="loading"><div class="loading-mark">帳</div><div class="loading-text">読み込み中</div></div>`;
+  if (loading) return html`<div class="loading"><div class="loading-mark">宀</div><div class="loading-text">読み込み中</div></div>`;
   if (error) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>
@@ -58,81 +70,87 @@ export function HomePage() {
   `;
 
   const target = ctx.target;
-  const latest = ctx.latest_visit;
-  const todayDuty = ctx.today.today_duty || [];
-  const tomorrowDuty = ctx.today.tomorrow_duty || [];
-  const tomorrowDow = ctx.today.tomorrow_day_of_week || '';
+  const pendingTsutsumi = ctx.pending_tsutsumi || [];
+
+  // メンバーID → 表示名
+  const memberMap = {};
+  members.forEach(m => { memberMap[m.member_id] = m.display_name; });
+
+  // 統合フィード(visits + facility_ops + notes)
+  const feed = [];
+  visits.forEach(v => v.visited_at && feed.push({
+    type: 'visit', id: v.visit_id, ts: v.visited_at,
+    by: memberMap[v.member_id] || '?', data: v
+  }));
+  ops.forEach(o => o.operated_at && feed.push({
+    type: 'facility', id: o.op_id, ts: o.operated_at,
+    by: memberMap[o.member_id] || '?', data: o
+  }));
+  notes.forEach(n => n.created_at && feed.push({
+    type: 'note', id: n.note_id, ts: n.created_at,
+    by: memberMap[n.created_by] || '?', data: n
+  }));
+  feed.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
 
   return html`
     <div class="screen">
-      <${Header} title="田 ・ 帳" />
+      <${Header} title="N E O 百" />
 
-      <main class="screen-body">
+      <main class="screen-body home-v2">
 
-        <!-- 本日の水加減 -->
-        <section class="mizu-card">
-          <div class="mizu-head">
-            <div class="mizu-title">本 日 の 水 加 減</div>
+        <!-- 上部固定:今の目安 -->
+        <section class="meyasu-card">
+          <div class="meyasu-head">
+            <div class="meyasu-title">今 の 目 安</div>
           </div>
-          <div class="mizu-grid">
 
-            <!-- 目標 -->
-            <div class="mizu-col">
-              <div class="mizu-col-label">目 標</div>
-              <div class="mizu-visual">${TargetVisual({ target })}</div>
-              <div class="mizu-text">
-                ${target
-                  ? html`
-                    <div class="mizu-main">${target.target_label}</div>
-                    <div class="mizu-sub">${target.period_label}</div>
-                  `
-                  : html`
-                    <div class="mizu-main warn">設定未完了</div>
-                    <div class="mizu-sub">時期データを<br/>登録してください</div>
-                  `
-                }
-              </div>
-            </div>
-
-            <!-- 直近 -->
-            <div class="mizu-col">
-              <div class="mizu-col-label">直 近</div>
-              <div class="mizu-visual">
-                ${latest && latest.water_level_photo_url
-                  ? html`<img class="mizu-photo" src=${convertDriveUrl(latest.water_level_photo_url)} alt="直近の田んぼ"/>`
-                  : html`<div class="mizu-photo placeholder">写真なし</div>`
-                }
-              </div>
-              <div class="mizu-text">
-                ${latest
-                  ? html`
-                    <div class="mizu-main">${latest.display_name} ${formatShort(latest.visited_at).split(' ')[0]}</div>
-                    <div class="mizu-sub">${formatElapsed(latest.visited_at)}</div>
-                    <div class="mizu-tags">
-                      ${latest.water_level_eval && html`<span class="mizu-tag">三畝 ${latest.water_level_eval}</span>`}
-                      ${latest.field2_eval && html`<span class="mizu-tag">一反 ${latest.field2_eval}</span>`}
-                      ${latest.stream_status && html`<span class="mizu-tag water">疎水 ${latest.stream_status}</span>`}
-                    </div>
-                  `
-                  : html`
-                    <div class="mizu-main">まだ記録なし</div>
-                    <a class="mizu-action" href="#/visit">最初の見回りをする ›</a>
-                  `
-                }
-              </div>
+          <!-- 目標水位 -->
+          <div class="meyasu-row">
+            <div class="meyasu-visual">${TargetVisual({ target })}</div>
+            <div class="meyasu-text">
+              ${target
+                ? html`
+                  <div class="meyasu-main">${target.target_label}</div>
+                  <div class="meyasu-sub">${target.period_label}</div>
+                `
+                : html`<div class="meyasu-main warn">目標未設定</div>`
+              }
             </div>
           </div>
+
+          <!-- 稲の暦(積算温度) -->
+          ${!phenology && !phenologyError && html`<div class="meyasu-loading">気温データ読み込み中…</div>`}
+          ${phenologyError && html`<div class="meyasu-loading">気温データ取得失敗</div>`}
+          ${phenology && phenology.map(r => html`
+            <div class="gdd-line" key=${r.paddy_key}>
+              <span class="gdd-paddy">${r.paddy_name}</span>
+              ${r.progress
+                ? html`
+                  <span class="gdd-info">
+                    ${r.progress.days}日目 ・ 積算 ${r.progress.gdd}°C·日
+                    ${r.progress.predicted_date && html`
+                      ・ <span class="gdd-pred">
+                        ${r.progress.phase === 'transplant_to_heading' ? '出穂' : '刈取り'}
+                        ${ymdToMd(r.progress.predicted_date)}ごろ
+                      </span>
+                    `}
+                  </span>
+                `
+                : html`<span class="gdd-info dim">田植え日未設定</span>`
+              }
+            </div>
+          `)}
         </section>
 
-        <!-- 堤の未完了リマインダー(該当時のみ、警告色を使わずさりげなく) -->
-        ${ctx.pending_tsutsumi && ctx.pending_tsutsumi.length > 0 && html`
+        <!-- 堤の未完了リマインダー(該当時のみ) -->
+        ${pendingTsutsumi.length > 0 && html`
           <section class="reminder-card">
             <div class="reminder-head">
               <div class="reminder-mark">堤</div>
               <div class="reminder-label">開 け た ま ま</div>
             </div>
             <div class="reminder-body">
-              ${ctx.pending_tsutsumi.map(op => html`
+              ${pendingTsutsumi.map(op => html`
                 <div class="reminder-row" key=${op.op_id}>
                   <span class="reminder-by">${op.display_name}</span>
                   <span class="reminder-time">${formatShort(op.operated_at)}</span>
@@ -140,140 +158,15 @@ export function HomePage() {
                 </div>
               `)}
             </div>
-            <a class="reminder-action" href="#/facility">閉めに行く ›</a>
+            <a class="reminder-action" href="#/compose">閉めに行く ›</a>
           </section>
         `}
 
-        <!-- 本日の当番 -->
-        <section class="section">
-          <div class="sec-head">
-            <div class="sec-mark"></div>
-            <div class="sec-title">本 日 の 当 番</div>
-            <div class="sec-line"></div>
-          </div>
-          <div class="duty-card">
-            <div class="duty-row">
-              <div class="duty-day">${ctx.today.day_of_week}曜日</div>
-            </div>
-            ${todayDuty.length > 0
-              ? html`
-                <div class="duty-names">
-                  ${todayDuty.map((d, i) => html`
-                    <div class="duty-person" key=${d.member_id}>
-                      <div class=${`shuin ${i === 1 ? 's2' : ''}`}>${(d.display_name || '?').charAt(0)}</div>
-                      <div class="duty-name">${d.display_name}</div>
-                    </div>
-                  `)}
-                </div>
-              `
-              : html`<div class="duty-empty">当番表が未設定です</div>`
-            }
-            ${tomorrowDuty.length > 0 && html`
-              <div class="duty-tomorrow">
-                <span class="duty-tomorrow-label">明日 ${tomorrowDow}</span>
-                <span class="duty-tomorrow-names">
-                  ${tomorrowDuty.map(d => d.display_name).join(' ・ ')}
-                </span>
-              </div>
-            `}
-          </div>
-        </section>
-
-        <!-- 稲の暦(積算温度) -->
-        <section class="section">
-          <div class="sec-head">
-            <div class="sec-mark"></div>
-            <div class="sec-title">稲 の 暦</div>
-            <div class="sec-line"></div>
-          </div>
-          ${!phenology && !phenologyError && html`<div class="empty-note">気温データを読み込み中…</div>`}
-          ${phenologyError && html`<div class="empty-note">気温データの取得に失敗しました</div>`}
-          ${phenology && phenology.map(r => html`
-            <div class="gdd-row" key=${r.paddy_key}>
-              <div class="gdd-row-head">
-                <span class="gdd-paddy-name">${r.paddy_name}</span>
-                ${r.variety && html`<span class="gdd-variety">${r.variety}</span>`}
-              </div>
-              ${r.progress
-                ? html`
-                  <div class="gdd-main">${r.progress.phase_label} ・ ${r.progress.days} 日目</div>
-                  <div class="gdd-bar"><div class="gdd-bar-fill" style=${`width:${r.progress.pct}%`}></div></div>
-                  <div class="gdd-meta">
-                    <span class="gdd-cum">積算 ${r.progress.gdd}°C·日 / 目標 ${r.progress.target}°C·日</span>
-                    ${r.progress.predicted_date && html`
-                      <span class="gdd-pred">
-                        ${r.progress.phase === 'transplant_to_heading' ? '出穂見込み' : '刈取り適期'}
-                        ${ymdToMd(r.progress.predicted_date)} ごろ
-                      </span>
-                    `}
-                  </div>
-                `
-                : html`<div class="empty-note">田植え日が未設定です</div>`
-              }
-            </div>
-          `)}
-        </section>
-
-        <!-- 近ごろの見回り -->
-        <section class="section">
-          <div class="sec-head">
-            <div class="sec-mark"></div>
-            <div class="sec-title">近 ご ろ の 見 回 り</div>
-            <div class="sec-line"></div>
-            <a class="sec-action" href="#/visit">記す ›</a>
-          </div>
-          ${ctx.recent_visits.length > 0
-            ? ctx.recent_visits.map(v => html`
-              <div class="visit-item" key=${v.visit_id}>
-                ${v.water_level_photo_url
-                  ? html`<img class="visit-thumb" src=${convertDriveUrl(v.water_level_photo_url)} alt=""/>`
-                  : html`<div class="visit-thumb placeholder"></div>`
-                }
-                <div class="visit-info">
-                  <div class="visit-top">
-                    <div class="visit-by">${v.display_name}</div>
-                    <div class="visit-time">${formatShort(v.visited_at)}</div>
-                  </div>
-                  <div class="visit-note">
-                    ${v.water_level_eval && html`<span class="visit-tag">三畝 ${v.water_level_eval}</span>`}
-                    ${v.field2_eval && html`<span class="visit-tag">一反 ${v.field2_eval}</span>`}
-                    ${v.stream_status && html`<span class="visit-tag water">疎水 ${v.stream_status}</span>`}
-                    ${v.free_note && html`<span class="visit-free">${truncate(v.free_note, 30)}</span>`}
-                  </div>
-                </div>
-              </div>
-            `)
-            : html`<div class="empty-note">まだ記録がありません</div>`
-          }
-        </section>
-
-        <!-- 共用設備の動き(直近2件) -->
-        <section class="section">
-          <div class="sec-head">
-            <div class="sec-mark"></div>
-            <div class="sec-title">共 用 設 備 の 動 き</div>
-            <div class="sec-line"></div>
-            <a class="sec-action" href="#/facility">記す ›</a>
-          </div>
-          ${ctx.recent_facility_ops && ctx.recent_facility_ops.length > 0
-            ? ctx.recent_facility_ops.map(op => html`
-              <div class="facility-item" key=${op.op_id}>
-                <div class=${`facility-icon ${op.target === '堤' ? (op.action === '開けた' ? 'open' : 'close') : 'other'}`}>
-                  ${(op.target || '').charAt(0)}
-                </div>
-                <div class="facility-info">
-                  <div class="facility-top">
-                    <div class="facility-by">${op.display_name}</div>
-                    <div class="facility-time">${formatShort(op.operated_at)}</div>
-                  </div>
-                  <div class="facility-note">
-                    <span class="facility-action">${op.target}を ${op.action || '操作'}</span>
-                    ${op.reason && html`<span class="facility-reason">${truncate(op.reason, 30)}</span>`}
-                  </div>
-                </div>
-              </div>
-            `)
-            : html`<div class="empty-note">まだ記録がありません</div>`
+        <!-- 投稿フィード -->
+        <section class="feed">
+          ${feed.length === 0
+            ? html`<div class="empty-note">まだ投稿がありません</div>`
+            : feed.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} />`)
           }
         </section>
 
@@ -284,18 +177,77 @@ export function HomePage() {
   `;
 }
 
-// 目標水位のビジュアル(SVG)
-function TargetVisual({ target }) {
-  if (!target) {
-    return html`<div class="target-empty">─</div>`;
+// ─────────────────────────────────────
+// 投稿カード(共通)
+// ─────────────────────────────────────
+function PostCard({ item }) {
+  const v = item.data;
+  const initial = (item.by || '?').charAt(0);
+
+  // 写真URL(visit のみ 最大2枚)
+  let photos = [];
+  if (item.type === 'visit') {
+    if (v.water_level_photo_url) photos.push({label:'三畝', url: convertDriveUrl(v.water_level_photo_url)});
+    if (v.field2_photo_url)      photos.push({label:'一反', url: convertDriveUrl(v.field2_photo_url)});
+  } else if (item.type === 'facility' && v.photo_url) {
+    photos.push({label:'', url: convertDriveUrl(v.photo_url)});
   }
 
+  // タグ
+  let tags = [];
+  if (item.type === 'visit') {
+    if (v.water_level_eval) tags.push(`三畝 ${v.water_level_eval}`);
+    if (v.field2_eval)      tags.push(`一反 ${v.field2_eval}`);
+    if (v.stream_status)    tags.push(`疎水 ${v.stream_status}`);
+  } else if (item.type === 'facility') {
+    tags.push(`${v.target}${v.action ? ' ' + v.action : ''}`);
+  }
+
+  // 本文
+  let body = '';
+  if (item.type === 'visit')        body = v.free_note || '';
+  else if (item.type === 'facility') body = v.reason || v.coordination_note || '';
+  else if (item.type === 'note')     body = v.content || v.body || '';
+
+  return html`
+    <article class="post">
+      <header class="post-head">
+        <div class="post-avatar">${initial}</div>
+        <div class="post-meta">
+          <div class="post-by">${item.by}</div>
+          <div class="post-time">${formatShort(item.ts)}</div>
+        </div>
+      </header>
+
+      ${photos.length > 0 && html`
+        <div class=${`post-photos count-${photos.length}`}>
+          ${photos.map(p => html`
+            <div class="post-photo-cell" key=${p.url}>
+              <img class="post-photo" src=${p.url} alt=${p.label}/>
+              ${p.label && html`<span class="post-photo-label">${p.label}</span>`}
+            </div>
+          `)}
+        </div>
+      `}
+
+      ${tags.length > 0 && html`
+        <div class="post-tags">
+          ${tags.map(t => html`<span class="post-tag" key=${t}>${t}</span>`)}
+        </div>
+      `}
+
+      ${body && html`<div class="post-body">${body}</div>`}
+    </article>
+  `;
+}
+
+// 目標水位のビジュアル(SVG)
+function TargetVisual({ target }) {
+  if (!target) return html`<div class="target-empty">─</div>`;
   const label = target.target_label || '';
-  // 表示パターン:中干しは水なし
   const isDry = label.includes('中干し') || label.includes('乾');
   const isLow = label.includes('浅め') || label.includes('低');
-  const waterTop = isDry ? 50 : (isLow ? 38 : 32);  // 水面のY座標
-
+  const waterTop = isDry ? 50 : (isLow ? 38 : 32);
   return html`
     <svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="50" width="100" height="10" fill="#8b6f47" opacity="0.3"/>
@@ -313,22 +265,12 @@ function TargetVisual({ target }) {
   `;
 }
 
-/**
- * Google Drive の /file/d/XXX/view URL を、画像として埋め込める形式に変換。
- * 「リンクを知っている全員」設定でも、img タグから表示するには変換が必要。
- */
 function convertDriveUrl(url) {
   if (!url) return '';
-  const match = url.match(/\/file\/d\/([^/]+)\//);
-  if (!match) return url;
-  return `https://lh3.googleusercontent.com/d/${match[1]}=w400`;
+  const m = String(url).match(/\/file\/d\/([^/]+)\//);
+  if (!m) return url;
+  return `https://lh3.googleusercontent.com/d/${m[1]}=w600`;
 }
-
-function truncate(s, n) {
-  if (!s) return '';
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
-
 function ymdToMd(ymd) {
   if (!ymd) return '';
   const d = new Date(ymd + 'T00:00:00');

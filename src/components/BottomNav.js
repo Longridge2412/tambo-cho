@@ -1,32 +1,44 @@
 /**
- * 下部ナビゲーション(漢字単字)
+ * ボトムナビゲーション
  *
- * Step 2 完了:全6画面が稼働。
+ * 3タブ + 中央フローティング「+」ボタン構成。
+ *   ホーム / Todo / カレンダー
+ *   中央の「+」は共有フォーム(#/compose)へ
  */
 
 const { createElement: h } = React;
 const html = htm.bind(h);
 
-const ITEMS = [
-  { route: '#/',       kanji: '帳', label: '今日',    enabled: true },
-  { route: '#/visit',  kanji: '見', label: '見回り',  enabled: true },
-  { route: '#/facility', kanji: '水', label: '設備',  enabled: true },
-  { route: '#/duty',   kanji: '番', label: '当番',    enabled: true },
-  { route: '#/notes',  kanji: '覚', label: '覚書',    enabled: true },
-  { route: '#/history',kanji: '綴', label: '綴り',    enabled: true }
+const TABS = [
+  { route: '#/',         label: 'ホーム',     symbol: '宀' },
+  { route: '#/todo',     label: 'Todo',       symbol: '✓' },
+  { route: '#/calendar', label: 'カレンダー', symbol: '田' }
 ];
 
 export function BottomNav({ current }) {
   return html`
-    <nav class="bottom-nav">
-      ${ITEMS.map(item => html`
-        <a key=${item.route}
-           href=${item.route}
-           class=${`nav-item ${current === item.route ? 'active' : ''}`}>
-          <div class="nav-kanji">${item.kanji}</div>
-          <div class="nav-label">${item.label}</div>
-        </a>
-      `)}
+    <nav class="bottom-nav-v2">
+      <a href=${TABS[0].route}
+         class=${`navv2-item ${current === TABS[0].route ? 'active' : ''}`}>
+        <div class="navv2-sym">${TABS[0].symbol}</div>
+        <div class="navv2-label">${TABS[0].label}</div>
+      </a>
+      <a href=${TABS[1].route}
+         class=${`navv2-item ${current === TABS[1].route ? 'active' : ''}`}>
+        <div class="navv2-sym">${TABS[1].symbol}</div>
+        <div class="navv2-label">${TABS[1].label}</div>
+      </a>
+      <a href="#/compose"
+         class=${`navv2-fab ${current === '#/compose' ? 'active' : ''}`}
+         aria-label="共有">
+        <div class="navv2-fab-plus">＋</div>
+      </a>
+      <a href=${TABS[2].route}
+         class=${`navv2-item ${current === TABS[2].route ? 'active' : ''}`}>
+        <div class="navv2-sym">${TABS[2].symbol}</div>
+        <div class="navv2-label">${TABS[2].label}</div>
+      </a>
+      <div class="navv2-spacer"></div>
     </nav>
   `;
 }

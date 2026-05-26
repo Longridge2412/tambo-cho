@@ -1589,3 +1589,317 @@ html, body {
   color: var(--shu);
   font-weight: 500;
 }
+
+/* ─────────────────────────────────────
+ * Phase A: 新ボトムナビ(3タブ + 中央フローティング+)
+ * ───────────────────────────────────── */
+.bottom-nav-v2 {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 62px;
+  background: var(--washi);
+  border-top: 1px solid var(--washi-edge);
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px 1fr 1fr;
+  align-items: center;
+  z-index: 50;
+}
+.navv2-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--sumi);
+  padding: 6px 0;
+  font-family: 'Klee One', serif;
+}
+.navv2-sym {
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: var(--sumi-fade);
+}
+.navv2-label {
+  font-size: 10px;
+  margin-top: 4px;
+  letter-spacing: 0.06em;
+  color: var(--sumi-fade);
+}
+.navv2-item.active .navv2-sym,
+.navv2-item.active .navv2-label { color: var(--shu); }
+
+.navv2-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--shu);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  margin-top: -22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  text-decoration: none;
+}
+.navv2-fab-plus {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 300;
+}
+.navv2-fab.active { background: var(--sumi); }
+.navv2-spacer { display: none; }
+
+/* 新ナビが乗るので画面下部に余白 */
+.home-v2,
+.screen-body { padding-bottom: 80px; }
+
+/* ─────────────────────────────────────
+ * 「今の目安」上部固定カード
+ * ───────────────────────────────────── */
+.meyasu-card {
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+.meyasu-head { margin-bottom: 8px; }
+.meyasu-title {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--sumi-fade);
+  text-align: center;
+}
+.meyasu-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.meyasu-visual { flex: 0 0 100px; }
+.meyasu-text { flex: 1; font-family: 'Klee One', serif; }
+.meyasu-main {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.06em;
+}
+.meyasu-main.warn { color: var(--shu); font-size: 13px; }
+.meyasu-sub {
+  font-size: 11px;
+  color: var(--sumi-fade);
+  margin-top: 2px;
+}
+.meyasu-loading {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  padding: 4px 0;
+}
+.gdd-line {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi);
+  padding: 5px 0;
+  border-top: 1px dotted var(--washi-edge);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+.gdd-paddy {
+  font-weight: 600;
+  min-width: 4em;
+  letter-spacing: 0.04em;
+}
+.gdd-info { color: var(--sumi-fade); font-size: 11px; }
+.gdd-info.dim { font-style: italic; }
+.gdd-pred { color: var(--shu); font-weight: 500; }
+
+/* ─────────────────────────────────────
+ * 投稿フィード
+ * ───────────────────────────────────── */
+.feed { margin: 14px 0 0; }
+.post {
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 8px;
+}
+.post-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--koke);
+  color: #fff;
+  font-family: 'Klee One', serif;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+.post-meta { flex: 1; font-family: 'Klee One', serif; }
+.post-by {
+  font-size: 13px;
+  color: var(--sumi);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.post-time {
+  font-size: 10px;
+  color: var(--sumi-fade);
+  margin-top: 1px;
+}
+
+.post-photos {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  background: var(--washi-edge);
+}
+.post-photos.count-1 { grid-template-columns: 1fr; }
+.post-photos.count-2 { grid-template-columns: 1fr 1fr; }
+.post-photo-cell {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #eee;
+}
+.post-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.post-photo-label {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 12px 0;
+}
+.post-tag {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi);
+  background: #f3eedf;
+  border: 1px solid var(--washi-edge);
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.04em;
+}
+.post-body {
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  color: var(--sumi);
+  padding: 8px 12px 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────
+ * 共有フォームの折りたたみセクション
+ * ───────────────────────────────────── */
+.compose-section {
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+.compose-section > summary {
+  list-style: none;
+  padding: 12px 14px;
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sumi);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  position: relative;
+  user-select: none;
+}
+.compose-section > summary::-webkit-details-marker { display: none; }
+.compose-section > summary::after {
+  content: '＋';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--sumi-fade);
+}
+.compose-section[open] > summary::after { content: '−'; }
+.compose-sub {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  margin-left: 8px;
+}
+.compose-section-body {
+  padding: 6px 14px 14px;
+  border-top: 1px dotted var(--washi-edge);
+}
+.compose-foot-hint {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  margin-top: 8px;
+}
+
+/* ─────────────────────────────────────
+ * プレースホルダ画面(Todo / カレンダー)
+ * ───────────────────────────────────── */
+.placeholder-card {
+  background: var(--washi);
+  border: 1px dashed var(--washi-edge);
+  border-radius: 10px;
+  padding: 28px 18px;
+  margin: 20px 0;
+  text-align: center;
+  font-family: 'Klee One', serif;
+}
+.placeholder-mark {
+  font-size: 36px;
+  color: var(--sumi-fade);
+  margin-bottom: 8px;
+  letter-spacing: 0;
+}
+.placeholder-title {
+  font-size: 14px;
+  color: var(--sumi);
+  margin-bottom: 12px;
+  letter-spacing: 0.1em;
+}
+.placeholder-text {
+  font-size: 12px;
+  color: var(--sumi-fade);
+  line-height: 1.7;
+}
+.placeholder-text a { color: var(--shu); }
