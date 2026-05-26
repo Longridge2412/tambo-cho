@@ -10,7 +10,7 @@ const { createElement: h } = React;
 const html = htm.bind(h);
 
 const TABS = [
-  { route: '#/',         label: 'ホーム',     symbol: '宀' },
+  { route: '#/',         label: 'ホーム',     symbol: '家' },
   { route: '#/todo',     label: 'Todo',       symbol: '✓' },
   { route: '#/calendar', label: 'カレンダー', symbol: '田' }
 ];

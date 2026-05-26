@@ -38,8 +38,9 @@ export function ComposePage() {
   const [opTarget, setOpTarget] = useState('');
   const [opAction, setOpAction] = useState('');
 
-  // Todo (Phase Bプレースホルダ)
+  // Todo
   const [todoText, setTodoText] = useState('');
+  const [todoDue, setTodoDue] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -111,6 +112,15 @@ export function ComposePage() {
           content: memo.trim()
         });
         created.push('覚書');
+      }
+      // 4) Todo 追加
+      if (todoText.trim()) {
+        await api.addTodo({
+          content: todoText.trim(),
+          due_date: todoDue || '',
+          created_by: memberId
+        });
+        created.push('Todo');
       }
 
       setSubmitted({ created, count: created.length });
@@ -244,16 +254,21 @@ export function ComposePage() {
             </div>
           </details>
 
-          <!-- Todo (Phase B) -->
+          <!-- Todo 追加 -->
           <details class="compose-section">
-            <summary>Todo に 追 加 <span class="compose-sub">近日対応</span></summary>
+            <summary>Todo に 追 加 <span class="compose-sub">任意</span></summary>
             <div class="compose-section-body">
               <input type="text" class="f-input"
                 value=${todoText}
-                placeholder="まだ保存されません(次の更新で対応)"
-                disabled
+                placeholder="例: 水もれの穴をふさぐ"
                 onChange=${e => setTodoText(e.target.value)}/>
-              <div class="compose-foot-hint">Todo タブと共有フォームのTodo追加は次の更新で動くようになります</div>
+              <div class="todo-add-row">
+                <label class="todo-add-due-label">期日</label>
+                <input type="date" class="f-input f-date"
+                  value=${todoDue}
+                  onChange=${e => setTodoDue(e.target.value)}/>
+              </div>
+              <div class="compose-foot-hint">入っていれば送信時にTodo一覧に追加されます</div>
             </div>
           </details>
 

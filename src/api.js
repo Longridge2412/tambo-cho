@@ -71,5 +71,9 @@ export const api = {
   acceptDutySwap:     (payload) => callApi('acceptDutySwap', payload),
   updateDutyMaster:   (payload) => callApi('updateDutyMaster', payload),
   listPaddyPhenology:   () => callApi('listPaddyPhenology'),
-  updatePaddyPhenology: (payload) => callApi('updatePaddyPhenology', payload)
+  updatePaddyPhenology: (payload) => callApi('updatePaddyPhenology', payload),
+  listTodos:            () => callApi('listTodos'),
+  addTodo:              (payload) => callApi('addTodo', payload),
+  updateTodo:           (payload) => callApi('updateTodo', payload),
+  completeTodo:         (payload) => callApi('completeTodo', payload)
 };
