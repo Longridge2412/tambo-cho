@@ -70,11 +70,18 @@ export function CalendarPage() {
   const memberMap = {};
   members.forEach(m => { memberMap[m.member_id] = m.display_name; });
 
-  // 日付ごとの投稿リストを構築
+  // 日付ごとの投稿リストを構築(ローカル時刻基準でバケツ分け)
+  function localYmd(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
   const postsByDate = {};
   const pushPost = (dateStr, post) => {
     if (!dateStr) return;
-    const k = dateStr.slice(0, 10);
+    const k = localYmd(dateStr);
+    if (!k) return;
     if (!postsByDate[k]) postsByDate[k] = [];
     postsByDate[k].push(post);
   };
