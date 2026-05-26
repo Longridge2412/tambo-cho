@@ -2179,3 +2179,53 @@ html, body {
   color: var(--sumi);
   letter-spacing: 0.06em;
 }
+
+/* ─────────────────────────────────────
+ * 新バージョン検知バナー
+ *   PWA 更新時に画面下に出る。タップで切り替え。
+ * ───────────────────────────────────── */
+#updateBanner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 78px;
+  z-index: 100;
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: 'Klee One', serif;
+  animation: ubSlide 0.35s ease-out;
+}
+@keyframes ubSlide {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+#updateBanner .ub-text {
+  font-size: 13px;
+  color: var(--sumi);
+  letter-spacing: 0.04em;
+  flex: 1;
+  min-width: 0;
+}
+#updateBanner .ub-btn {
+  flex-shrink: 0;
+  background: var(--shu);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+#updateBanner .ub-btn:active {
+  background: var(--shu-deep);
+}

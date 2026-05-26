@@ -7,7 +7,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v25';
+const CACHE_NAME = 'tambo-cho-v26';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -38,7 +38,14 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_FILES))
   );
-  self.skipWaiting();
+  // skipWaiting は呼ばない:ページから 'SKIP_WAITING' メッセージを受けたタイミングで切り替える
+});
+
+// ページから 'SKIP_WAITING' を受け取ったら待機中の自分を有効化
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {

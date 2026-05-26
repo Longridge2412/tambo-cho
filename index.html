@@ -87,10 +87,48 @@
   <script type="module" src="./src/main.js"></script>
 
   <script>
+    // Service Worker 登録 + 新バージョン検知バナー
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => {
+            // すでに「待機中」のSWがあれば即バナー表示
+            if (reg.waiting && navigator.serviceWorker.controller) {
+              showUpdateBanner(reg.waiting);
+            }
+            // 新しいSWが見つかったら状態変化を見張る
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showUpdateBanner(newWorker);
+                }
+              });
+            });
+          })
           .catch(err => console.warn('SW registration failed:', err));
+
+        // SW が切り替わったら1回だけリロード
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+      });
+    }
+
+    function showUpdateBanner(worker) {
+      if (document.getElementById('updateBanner')) return;
+      const bar = document.createElement('div');
+      bar.id = 'updateBanner';
+      bar.innerHTML =
+        '<span class="ub-text">新しいバージョンがあります</span>' +
+        '<button class="ub-btn" type="button">更新</button>';
+      document.body.appendChild(bar);
+      bar.querySelector('.ub-btn').addEventListener('click', () => {
+        worker.postMessage({ type: 'SKIP_WAITING' });
       });
     }
   </script>
