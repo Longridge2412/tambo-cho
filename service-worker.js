@@ -7,7 +7,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v23';
+const CACHE_NAME = 'tambo-cho-v24';
 const STATIC_FILES = [
   './',
   './index.html',

@@ -34,9 +34,8 @@ export function ComposePage() {
   const [photoFile2, setPhotoFile2] = useState(null);
   const [photoPreview2, setPhotoPreview2] = useState(null);
 
-  // 堤の操作セクション
-  const [opTarget, setOpTarget] = useState('');
-  const [opAction, setOpAction] = useState('');
+  // 堤の開け閉め
+  const [opAction, setOpAction] = useState('');  // '' / '開けた' / '閉めた'
 
   // Todo
   const [todoText, setTodoText] = useState('');
@@ -65,8 +64,7 @@ export function ComposePage() {
 
   const hasVisit = () =>
     !!(eval1 || eval2 || streamStatus || photoFile1 || photoFile2);
-  const hasFacility = () =>
-    !!(opTarget && opAction);
+  const hasFacility = () => !!opAction;  // 開けた/閉めたが選ばれていれば対象は堤
 
   const handleSubmit = async () => {
     if (!memberId) { setError('名前を選んでください'); return; }
@@ -94,16 +92,16 @@ export function ComposePage() {
         });
         created.push('見回り');
       }
-      // 2) 堤の操作パート
+      // 2) 堤の開け閉めパート
       if (hasFacility()) {
         await api.addFacilityOp({
           member_id: memberId,
-          target: opTarget,
+          target: '堤',
           action: opAction,
           reason: memo || '',
           coordination_note: ''
         });
-        created.push('共用設備');
+        created.push('堤の操作');
       }
       // 3) どちらにも吸収されなかった「メモのみ」 → 覚書
       if (!hasVisit() && !hasFacility() && memo.trim()) {
@@ -226,31 +224,20 @@ export function ComposePage() {
             </div>
           </details>
 
-          <!-- 共用設備(堤など) -->
+          <!-- 堤の開け閉め -->
           <details class="compose-section">
-            <summary>共 用 設 備 の 操 作 <span class="compose-sub">任意</span></summary>
+            <summary>堤 の 開 け 閉 め <span class="compose-sub">任意</span></summary>
             <div class="compose-section-body">
               <div class="form-group">
-                <div class="f-label">対 象</div>
                 <div class="toggle-group">
-                  ${['', '堤', '三つ又', '水口'].filter(x=>x).map(opt => html`
-                    <button key=${opt} type="button"
-                      class=${`toggle-btn ${opTarget === opt ? 'active' : ''}`}
-                      onClick=${() => setOpTarget(opTarget === opt ? '' : opt)}>${opt}</button>
-                  `)}
-                </div>
-              </div>
-              <div class="form-group">
-                <div class="f-label">動 作</div>
-                <div class="toggle-group">
-                  ${['開けた', '閉めた', 'その他'].map(opt => html`
+                  ${['開けた', '閉めた'].map(opt => html`
                     <button key=${opt} type="button"
                       class=${`toggle-btn ${opAction === opt ? 'active' : ''}`}
                       onClick=${() => setOpAction(opAction === opt ? '' : opt)}>${opt}</button>
                   `)}
                 </div>
               </div>
-              <div class="f-hint compose-foot-hint">理由・メモは上の「メモ」欄に書いてください</div>
+              <div class="compose-foot-hint">どれくらい開けたか・理由・状況は上の「メモ」欄に書いてください</div>
             </div>
           </details>
 
