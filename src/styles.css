@@ -2229,3 +2229,24 @@ html, body {
 #updateBanner .ub-btn:active {
   background: var(--shu-deep);
 }
+
+/* メモ写真用の小さなアップロード枠 */
+.memo-photo-wrap {
+  margin-top: 8px;
+}
+.memo-photo-up {
+  padding: 14px 12px;
+  min-height: 0;
+}
+.memo-photo-up .photo-up-icon {
+  font-size: 20px;
+}
+.memo-photo-up .photo-up-label {
+  font-size: 12px;
+}
+.memo-photo-up .photo-up-hint {
+  font-size: 10px;
+}
+.memo-photo-preview {
+  max-width: 100%;
+}

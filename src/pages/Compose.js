@@ -24,6 +24,8 @@ export function ComposePage() {
   const [memberId, setMemberId] = useState('');
 
   const [memo, setMemo] = useState('');
+  const [memoPhotoFile, setMemoPhotoFile] = useState(null);
+  const [memoPhotoPreview, setMemoPhotoPreview] = useState(null);
 
   // 水位セクション
   const [eval1, setEval1] = useState('');
@@ -53,8 +55,11 @@ export function ComposePage() {
 
   const handlePhoto = (field, e) => {
     const file = e.target.files[0];
-    const setFile = field === 1 ? setPhotoFile1 : setPhotoFile2;
-    const setPrev = field === 1 ? setPhotoPreview1 : setPhotoPreview2;
+    let setFile, setPrev;
+    if (field === 1) { setFile = setPhotoFile1; setPrev = setPhotoPreview1; }
+    else if (field === 2) { setFile = setPhotoFile2; setPrev = setPhotoPreview2; }
+    else if (field === 'memo') { setFile = setMemoPhotoFile; setPrev = setMemoPhotoPreview; }
+    else return;
     if (!file) { setFile(null); setPrev(null); return; }
     setFile(file);
     const reader = new FileReader();
@@ -68,7 +73,7 @@ export function ComposePage() {
 
   const handleSubmit = async () => {
     if (!memberId) { setError('名前を選んでください'); return; }
-    if (!hasVisit() && !hasFacility() && !memo.trim() && !todoText.trim()) {
+    if (!hasVisit() && !hasFacility() && !memo.trim() && !memoPhotoFile && !todoText.trim()) {
       setError('何か1つは入力してください');
       return;
     }
@@ -76,6 +81,11 @@ export function ComposePage() {
     setError(null);
     const created = [];
     try {
+      // メモに写真がある場合は、メモ全体(テキスト+写真)を「覚書」として独立保存。
+      // visit/facility の free_note には memo を入れない。
+      const hasMemoPhoto = !!memoPhotoFile;
+      const memoText = memo.trim();
+
       // 1) 見回りパート
       if (hasVisit()) {
         let p1 = null, p2 = null;
@@ -86,7 +96,7 @@ export function ComposePage() {
           water_level_eval: eval1 || '',
           field2_eval: eval2 || '',
           stream_status: streamStatus || '',
-          free_note: memo || '',
+          free_note: hasMemoPhoto ? '' : memoText,
           photo_data_url: p1,
           field2_photo_data_url: p2
         });
@@ -98,16 +108,19 @@ export function ComposePage() {
           member_id: memberId,
           target: '堤',
           action: opAction,
-          reason: memo || '',
+          reason: hasMemoPhoto ? '' : memoText,
           coordination_note: ''
         });
         created.push('堤の操作');
       }
-      // 3) どちらにも吸収されなかった「メモのみ」 → 覚書
-      if (!hasVisit() && !hasFacility() && memo.trim()) {
+      // 3) 覚書(メモ写真があれば必ず、無くて visit/facility も無くてテキストがあるとき)
+      if (hasMemoPhoto || (!hasVisit() && !hasFacility() && memoText)) {
+        let mp = null;
+        if (memoPhotoFile) mp = await compressImageToDataUrl(memoPhotoFile);
         await api.addNote({
           created_by: memberId,
-          content: memo.trim()
+          content: memoText,
+          photo_data_url: mp
         });
         created.push('覚書');
       }
@@ -172,7 +185,7 @@ export function ComposePage() {
             ${membersLoading && html`<div class="f-loading-hint">名前リストを読み込んでいます…</div>`}
           </div>
 
-          <!-- 自由メモ(共通) -->
+          <!-- 自由メモ + 任意の写真 -->
           <div class="form-group">
             <div class="f-label">メ モ <span class="f-hint">任意</span></div>
             <textarea
@@ -181,6 +194,25 @@ export function ComposePage() {
               onChange=${e => setMemo(e.target.value)}
               placeholder=${`今日の様子・気づき・誰かに言われたこと…`}
             />
+            <div class="memo-photo-wrap">
+              ${memoPhotoPreview
+                ? html`
+                  <div class="photo-preview memo-photo-preview" onClick=${() => document.getElementById('photo-memo').click()}>
+                    <img src=${memoPhotoPreview} alt="プレビュー"/>
+                    <div class="photo-preview-overlay">タップで変更</div>
+                  </div>
+                `
+                : html`
+                  <label class="photo-up memo-photo-up" for="photo-memo">
+                    <div class="photo-up-icon">+</div>
+                    <div class="photo-up-label">メ モ に 写 真 を 添 え る</div>
+                    <div class="photo-up-hint">任意 ・ 1 枚</div>
+                  </label>
+                `
+              }
+              <input id="photo-memo" type="file" accept="image/*"
+                onChange=${e => handlePhoto('memo', e)} style=${{display: 'none'}}/>
+            </div>
           </div>
 
           <!-- 水位(任意) -->

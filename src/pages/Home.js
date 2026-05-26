@@ -191,6 +191,8 @@ function PostCard({ item }) {
     if (v.field2_photo_url)      photos.push({label:'一反', url: convertDriveUrl(v.field2_photo_url)});
   } else if (item.type === 'facility' && v.photo_url) {
     photos.push({label:'', url: convertDriveUrl(v.photo_url)});
+  } else if (item.type === 'note' && v.photo_url) {
+    photos.push({label:'', url: convertDriveUrl(v.photo_url)});
   }
 
   // タグ

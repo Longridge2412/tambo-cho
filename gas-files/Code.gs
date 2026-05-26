@@ -216,24 +216,36 @@ function apiListFacilityOps(payload) {
 // ─────────────────────────────────────────
 
 function apiAddNote(payload) {
-  if (!payload.content) throw new Error('content is required');
+  if (!payload.content && !payload.photo_data_url) {
+    throw new Error('content または photo_data_url が必要です');
+  }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAMES.NOTES);
   const note_id = generateId('n', sheet);
   const now = new Date().toISOString();
+
+  // 任意の写真をDriveへ
+  let photo_url = '';
+  if (payload.photo_data_url) {
+    const filename = `${formatDateForFile(now)}_${payload.created_by || 'anon'}_note.jpg`;
+    photo_url = uploadDataUrlToDrive(payload.photo_data_url, filename, '覚書写真').url;
+  }
+
   sheet.appendRow([
     note_id,
-    payload.content,
+    payload.content || '',
     payload.created_by || '',
     now,
     now,
-    payload.pinned === true
+    payload.pinned === true,
+    photo_url
   ]);
   return {
-    note_id, content: payload.content,
+    note_id, content: payload.content || '',
     created_by: payload.created_by || '',
     created_at: now, updated_at: now,
-    pinned: payload.pinned === true
+    pinned: payload.pinned === true,
+    photo_url
   };
 }
 
