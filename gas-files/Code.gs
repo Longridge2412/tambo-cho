@@ -68,6 +68,8 @@ function dispatch(action, payload) {
     case 'addDutySwap':       return apiAddDutySwap(payload);
     case 'acceptDutySwap':    return apiAcceptDutySwap(payload);
     case 'updateDutyMaster':  return apiUpdateDutyMaster(payload);
+    case 'listPaddyPhenology':   return apiListPaddyPhenology();
+    case 'updatePaddyPhenology': return apiUpdatePaddyPhenology(payload);
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -709,4 +711,62 @@ function findDutySlot_(targetDate, memberId) {
     if (mid === memberId) return slot;
   }
   return null;
+}
+
+// ─────────────────────────────────────────
+// 田んぼフェノロジー(田植え/出穂/収穫日)API
+//   sheet: paddy_phenology
+//   columns: paddy_key, paddy_name, variety, transplant_date, heading_date, harvest_date
+// ─────────────────────────────────────────
+
+function apiListPaddyPhenology() {
+  return readSheet('paddy_phenology').map(function (r) {
+    return {
+      paddy_key:       r.paddy_key,
+      paddy_name:      r.paddy_name,
+      variety:         r.variety || '',
+      transplant_date: toYmd_(r.transplant_date),
+      heading_date:    toYmd_(r.heading_date),
+      harvest_date:    toYmd_(r.harvest_date)
+    };
+  });
+}
+
+function apiUpdatePaddyPhenology(payload) {
+  if (!payload.paddy_key) throw new Error('paddy_key is required');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('paddy_phenology');
+  if (!sheet) throw new Error('paddy_phenology シートがありません');
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idxKey       = headers.indexOf('paddy_key');
+  const idxTrans     = headers.indexOf('transplant_date');
+  const idxHeading   = headers.indexOf('heading_date');
+  const idxHarvest   = headers.indexOf('harvest_date');
+  if (idxKey < 0) throw new Error('paddy_phenology ヘッダ不備');
+  for (let r = 1; r < values.length; r++) {
+    if (values[r][idxKey] === payload.paddy_key) {
+      if (idxTrans   >= 0 && payload.transplant_date !== undefined) sheet.getRange(r+1, idxTrans+1).setValue(payload.transplant_date || '');
+      if (idxHeading >= 0 && payload.heading_date    !== undefined) sheet.getRange(r+1, idxHeading+1).setValue(payload.heading_date || '');
+      if (idxHarvest >= 0 && payload.harvest_date    !== undefined) sheet.getRange(r+1, idxHarvest+1).setValue(payload.harvest_date || '');
+      return { paddy_key: payload.paddy_key, updated: true };
+    }
+  }
+  throw new Error('paddy_key not found: ' + payload.paddy_key);
+}
+
+/** YYYY-MM-DD 文字列に正規化(空・null・Date・文字列いずれも対応) */
+function toYmd_(v) {
+  if (!v) return '';
+  if (v instanceof Date) {
+    const y = v.getFullYear(), m = String(v.getMonth()+1).padStart(2,'0'), d = String(v.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + d;
+  }
+  const s = String(v).trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  const y = d.getFullYear(), mo = String(d.getMonth()+1).padStart(2,'0'), da = String(d.getDate()).padStart(2,'0');
+  return y + '-' + mo + '-' + da;
 }

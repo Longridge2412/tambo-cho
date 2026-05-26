@@ -11,6 +11,7 @@ const { createElement: h, useState, useEffect } = React;
 const html = htm.bind(h);
 
 import { api } from '../api.js';
+import { getPaddyProgress } from '../services/phenology.js';
 import { formatShort, formatElapsed } from '../utils.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
@@ -19,11 +20,32 @@ export function HomePage() {
   const [ctx, setCtx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [phenology, setPhenology] = useState(null);
+  const [phenologyError, setPhenologyError] = useState(null);
 
   useEffect(() => {
     api.getTodayContext()
       .then(data => { setCtx(data); setLoading(false); })
       .catch(err => { setError(err.message); setLoading(false); });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await api.listPaddyPhenology();
+        const withProgress = await Promise.all(rows.map(async (r) => ({
+          ...r,
+          progress: r.transplant_date
+            ? await getPaddyProgress(r.transplant_date, r.heading_date)
+            : null
+        })));
+        if (!cancelled) setPhenology(withProgress);
+      } catch (err) {
+        if (!cancelled) setPhenologyError(err.message);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) return html`<div class="loading"><div class="loading-mark">帳</div><div class="loading-text">読み込み中</div></div>`;
@@ -157,6 +179,41 @@ export function HomePage() {
           </div>
         </section>
 
+        <!-- 稲の暦(積算温度) -->
+        <section class="section">
+          <div class="sec-head">
+            <div class="sec-mark"></div>
+            <div class="sec-title">稲 の 暦</div>
+            <div class="sec-line"></div>
+          </div>
+          ${!phenology && !phenologyError && html`<div class="empty-note">気温データを読み込み中…</div>`}
+          ${phenologyError && html`<div class="empty-note">気温データの取得に失敗しました</div>`}
+          ${phenology && phenology.map(r => html`
+            <div class="gdd-row" key=${r.paddy_key}>
+              <div class="gdd-row-head">
+                <span class="gdd-paddy-name">${r.paddy_name}</span>
+                ${r.variety && html`<span class="gdd-variety">${r.variety}</span>`}
+              </div>
+              ${r.progress
+                ? html`
+                  <div class="gdd-main">${r.progress.phase_label} ・ ${r.progress.days} 日目</div>
+                  <div class="gdd-bar"><div class="gdd-bar-fill" style=${`width:${r.progress.pct}%`}></div></div>
+                  <div class="gdd-meta">
+                    <span class="gdd-cum">積算 ${r.progress.gdd}°C·日 / 目標 ${r.progress.target}°C·日</span>
+                    ${r.progress.predicted_date && html`
+                      <span class="gdd-pred">
+                        ${r.progress.phase === 'transplant_to_heading' ? '出穂見込み' : '刈取り適期'}
+                        ${ymdToMd(r.progress.predicted_date)} ごろ
+                      </span>
+                    `}
+                  </div>
+                `
+                : html`<div class="empty-note">田植え日が未設定です</div>`
+              }
+            </div>
+          `)}
+        </section>
+
         <!-- 近ごろの見回り -->
         <section class="section">
           <div class="sec-head">
@@ -270,4 +327,11 @@ function convertDriveUrl(url) {
 function truncate(s, n) {
   if (!s) return '';
   return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+function ymdToMd(ymd) {
+  if (!ymd) return '';
+  const d = new Date(ymd + 'T00:00:00');
+  if (isNaN(d.getTime())) return ymd;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }

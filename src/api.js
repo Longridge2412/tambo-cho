@@ -69,5 +69,7 @@ export const api = {
   listDutySwaps:      () => callApi('listDutySwaps'),
   addDutySwap:        (payload) => callApi('addDutySwap', payload),
   acceptDutySwap:     (payload) => callApi('acceptDutySwap', payload),
-  updateDutyMaster:   (payload) => callApi('updateDutyMaster', payload)
+  updateDutyMaster:   (payload) => callApi('updateDutyMaster', payload),
+  listPaddyPhenology:   () => callApi('listPaddyPhenology'),
+  updatePaddyPhenology: (payload) => callApi('updatePaddyPhenology', payload)
 };

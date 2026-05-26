@@ -1526,3 +1526,66 @@ html, body {
   margin-top: 6px;
   letter-spacing: 0.04em;
 }
+
+/* ─────────────────────────────────────
+ * 稲の暦(積算温度カード)
+ * ───────────────────────────────────── */
+.gdd-row {
+  padding: 12px 14px;
+  margin: 8px 0;
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 8px;
+}
+.gdd-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.gdd-paddy-name {
+  font-family: 'Klee One', serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sumi);
+  letter-spacing: 0.06em;
+}
+.gdd-variety {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.gdd-main {
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  color: var(--sumi);
+  margin-bottom: 5px;
+  letter-spacing: 0.04em;
+}
+.gdd-bar {
+  height: 6px;
+  background: var(--washi-edge);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.gdd-bar-fill {
+  height: 100%;
+  background: var(--koke);
+  transition: width 0.4s ease-out;
+}
+.gdd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.gdd-cum {
+  letter-spacing: 0.02em;
+}
+.gdd-pred {
+  color: var(--shu);
+  font-weight: 500;
+}

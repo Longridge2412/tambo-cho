@@ -7,7 +7,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v19';
+const CACHE_NAME = 'tambo-cho-v20';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -25,7 +25,9 @@ const STATIC_FILES = [
   './src/pages/Duty.js',
   './src/components/BottomNav.js',
   './src/components/Header.js',
-  './src/styles.css'
+  './src/styles.css',
+  './src/services/phenology.js',
+  './src/data/aizu_normals.js'
 ];
 
 self.addEventListener('install', (event) => {
