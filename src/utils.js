@@ -252,3 +252,68 @@ export async function copyToClipboard(text) {
     }
   }
 }
+
+/**
+ * 共有フォームから作られたレコード群を、LINE貼り付け用の1つのテキストにまとめる。
+ *
+ * @param {object} parts
+ *   - memberName: 投稿者名
+ *   - visit:    {water_level_eval, field2_eval, stream_status, free_note, photos: number} | null
+ *   - facility: {action} | null  (堤前提)
+ *   - note:     {content, has_photo: bool} | null
+ *   - todo:     {content, due_date} | null
+ */
+export function buildComposeShareText(parts) {
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const h = d.getHours();
+  const period = (h >= 5 && h < 11) ? '朝' : (h >= 16 && h < 21) ? '夕' : '';
+  const lines = [
+    `🌾 NEO百 ${parts.memberName || ''}`,
+    `${dateStr} ${timeStr}${period ? '(' + period + ')' : ''}`
+  ];
+
+  const v = parts.visit, f = parts.facility, n = parts.note, t = parts.todo;
+  let bodyAdded = false;
+
+  // 水位ブロック
+  if (v) {
+    const block = [];
+    if (v.water_level_eval) block.push(`【三畝の田】水位:${v.water_level_eval}`);
+    if (v.field2_eval)      block.push(`【一反の田】水位:${v.field2_eval}`);
+    if (v.stream_status)    block.push(`カイヌマ疎水:${v.stream_status}`);
+    if (v.photos)           block.push(`写真:${v.photos}枚`);
+    if (block.length) { lines.push(''); lines.push(...block); }
+  }
+
+  // 堤ブロック
+  if (f && f.action) {
+    lines.push('');
+    lines.push(`🚰 堤を${f.action}`);
+  }
+
+  // 本文(優先: visit.free_note → facility.reason → note.content)
+  const body = (v && v.free_note) || (f && f.reason) || (n && n.content) || '';
+  if (body) {
+    lines.push('');
+    lines.push(body);
+    bodyAdded = true;
+  }
+
+  // 覚書写真
+  if (n && n.has_photo && !bodyAdded) {
+    lines.push('');
+    lines.push('(写真あり)');
+  } else if (n && n.has_photo) {
+    lines.push('(写真あり)');
+  }
+
+  // Todo
+  if (t && t.content) {
+    lines.push('');
+    lines.push(`✓ Todo追加: ${t.content}${t.due_date ? '(期日 ' + t.due_date + ')' : ''}`);
+  }
+
+  return lines.join('\n');
+}

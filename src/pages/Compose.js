@@ -14,7 +14,7 @@ const { createElement: h, useState, useEffect } = React;
 const html = htm.bind(h);
 
 import { api } from '../api.js';
-import { compressImageToDataUrl } from '../utils.js';
+import { compressImageToDataUrl, buildComposeShareText, copyToClipboard } from '../utils.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
 
@@ -81,40 +81,62 @@ export function ComposePage() {
     setError(null);
     const created = [];
     try {
-      // メモに写真がある場合は、メモ全体(テキスト+写真)を「覚書」として独立保存。
-      // visit/facility の free_note には memo を入れない。
       const hasMemoPhoto = !!memoPhotoFile;
       const memoText = memo.trim();
+      const visitFilled = hasVisit();
+      const facilityFilled = hasFacility();
 
-      // 1) 見回りパート
-      if (hasVisit()) {
+      // メモは1か所だけに収める
+      //   写真あり → 覚書(必ず)
+      //   なし & 見回りあり → free_note
+      //   なし & 堤あり → reason
+      //   なし & どれもなし → 覚書(テキストのみ)
+      let memoTarget = 'none';
+      if (hasMemoPhoto)             memoTarget = 'note';
+      else if (memoText && visitFilled)    memoTarget = 'visit';
+      else if (memoText && facilityFilled) memoTarget = 'facility';
+      else if (memoText)                   memoTarget = 'note';
+
+      // 保存したレコードを共有テキスト生成のために保持
+      let recVisit = null, recFacility = null, recNote = null, recTodo = null;
+
+      // 1) 見回り
+      if (visitFilled) {
         let p1 = null, p2 = null;
         if (photoFile1) p1 = await compressImageToDataUrl(photoFile1);
         if (photoFile2) p2 = await compressImageToDataUrl(photoFile2);
+        const visitFreeNote = (memoTarget === 'visit') ? memoText : '';
         await api.addVisit({
           member_id: memberId,
           water_level_eval: eval1 || '',
           field2_eval: eval2 || '',
           stream_status: streamStatus || '',
-          free_note: hasMemoPhoto ? '' : memoText,
+          free_note: visitFreeNote,
           photo_data_url: p1,
           field2_photo_data_url: p2
         });
         created.push('見回り');
+        recVisit = {
+          water_level_eval: eval1 || '', field2_eval: eval2 || '',
+          stream_status: streamStatus || '', free_note: visitFreeNote,
+          photos: (p1 ? 1 : 0) + (p2 ? 1 : 0)
+        };
       }
-      // 2) 堤の開け閉めパート
-      if (hasFacility()) {
+      // 2) 堤の開け閉め
+      if (facilityFilled) {
+        const opReason = (memoTarget === 'facility') ? memoText : '';
         await api.addFacilityOp({
           member_id: memberId,
           target: '堤',
           action: opAction,
-          reason: hasMemoPhoto ? '' : memoText,
+          reason: opReason,
           coordination_note: ''
         });
         created.push('堤の操作');
+        recFacility = { action: opAction, reason: opReason };
       }
-      // 3) 覚書(メモ写真があれば必ず、無くて visit/facility も無くてテキストがあるとき)
-      if (hasMemoPhoto || (!hasVisit() && !hasFacility() && memoText)) {
+      // 3) 覚書(memoTarget==='note' のとき)
+      if (memoTarget === 'note') {
         let mp = null;
         if (memoPhotoFile) mp = await compressImageToDataUrl(memoPhotoFile);
         await api.addNote({
@@ -123,6 +145,7 @@ export function ComposePage() {
           photo_data_url: mp
         });
         created.push('覚書');
+        recNote = { content: memoText, has_photo: !!mp };
       }
       // 4) Todo 追加
       if (todoText.trim()) {
@@ -132,9 +155,18 @@ export function ComposePage() {
           created_by: memberId
         });
         created.push('Todo');
+        recTodo = { content: todoText.trim(), due_date: todoDue || '' };
       }
 
-      setSubmitted({ created, count: created.length });
+      const memberName = members.find(m => m.member_id === memberId)?.display_name || '';
+      const shareText = buildComposeShareText({
+        memberName,
+        visit: recVisit,
+        facility: recFacility,
+        note: recNote,
+        todo: recTodo
+      });
+      setSubmitted({ created, count: created.length, shareText, memberName });
     } catch (err) {
       setError(`送信失敗: ${err.message}`);
     } finally {
@@ -143,27 +175,7 @@ export function ComposePage() {
   };
 
   if (submitted) {
-    return html`
-      <div class="screen">
-        <${Header} title="共 有 完 了" />
-        <main class="screen-body">
-          <section class="success-card">
-            <div class="success-mark">了</div>
-            <div class="success-text">
-              ${submitted.created.length === 0
-                ? html`送信しました`
-                : html`${submitted.created.join(' と ')} を記録しました`
-              }
-            </div>
-          </section>
-          <div class="action-row">
-            <a class="btn-ghost" href="#/">ホームへ</a>
-            <button class="btn-ghost" onClick=${() => window.location.reload()}>続けて投稿する</button>
-          </div>
-        </main>
-        <${BottomNav} current="#/compose" />
-      </div>
-    `;
+    return html`<${SubmittedView} data=${submitted} />`;
   }
 
   return html`
@@ -326,6 +338,53 @@ function photoBlock(field, label, preview, handlePhoto) {
       }
       <input id=${`photo-${field}`} type="file" accept="image/*"
         onChange=${e => handlePhoto(field, e)} style=${{display: 'none'}}/>
+    </div>
+  `;
+}
+
+function SubmittedView({ data }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const ok = await copyToClipboard(data.shareText);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return html`
+    <div class="screen">
+      <${Header} title="共 有 完 了" />
+
+      <main class="screen-body">
+        <section class="success-card">
+          <div class="success-mark">了</div>
+          <div class="success-text">
+            ${data.memberName ? data.memberName + ' の' : ''}
+            ${data.created.length === 0 ? '投稿' : data.created.join(' と ')}
+            を記録しました
+          </div>
+        </section>
+
+        <section class="share-card">
+          <div class="share-head">
+            <div class="share-title">L I N E に 報 告</div>
+            <div class="share-sub">下のテキストをコピーして<br/>全体LINEに貼り付けてください</div>
+          </div>
+          <pre class="share-text">${data.shareText}</pre>
+          <button class="btn-primary" onClick=${handleCopy}>
+            ${copied ? '✓ コピーしました' : 'テキストをコピー'}
+          </button>
+        </section>
+
+        <div class="action-row">
+          <a class="btn-ghost" href="#/">ホームへ</a>
+          <button class="btn-ghost" onClick=${() => window.location.reload()}>続けて投稿する</button>
+        </div>
+      </main>
+
+      <${BottomNav} current="#/compose" />
     </div>
   `;
 }
