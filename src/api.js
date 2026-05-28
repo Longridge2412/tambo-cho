@@ -75,5 +75,8 @@ export const api = {
   listTodos:            () => callApi('listTodos'),
   addTodo:              (payload) => callApi('addTodo', payload),
   updateTodo:           (payload) => callApi('updateTodo', payload),
-  completeTodo:         (payload) => callApi('completeTodo', payload)
+  completeTodo:         (payload) => callApi('completeTodo', payload),
+  deleteVisit:          (payload) => callApi('deleteVisit', payload),
+  deleteFacilityOp:     (payload) => callApi('deleteFacilityOp', payload),
+  deleteNote:           (payload) => callApi('deleteNote', payload)
 };

@@ -13,6 +13,7 @@ const html = htm.bind(h);
 
 import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
+import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
 import { formatShort, formatElapsed } from '../utils.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
@@ -27,6 +28,9 @@ export function HomePage() {
   const [error, setError] = useState(null);
   const [phenology, setPhenology] = useState(null);
   const [phenologyError, setPhenologyError] = useState(null);
+  const [operatorId, setOperatorId] = useState(getCurrentUser());
+  const [closingOpId, setClosingOpId] = useState('');
+  const [actionMsg, setActionMsg] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -60,7 +64,67 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return html`<div class="loading"><div class="loading-mark">宀</div><div class="loading-text">読み込み中</div></div>`;
+  const updateOperator = (id) => {
+    setOperatorId(id);
+    setCurrentUser(id);
+  };
+
+  const flash = (text) => {
+    setActionMsg(text);
+    setTimeout(() => setActionMsg(''), 2500);
+  };
+
+  const handleCloseTsutsumi = async (opId) => {
+    if (!operatorId) {
+      flash('「あなた」を選んでください');
+      return;
+    }
+    setClosingOpId(opId);
+    try {
+      await api.addFacilityOp({
+        member_id: operatorId,
+        target: '堤',
+        action: '閉めた',
+        reason: '',
+        coordination_note: '',
+        paired_op_id: opId
+      });
+      const [c, o] = await Promise.all([
+        api.getTodayContext(),
+        api.listFacilityOps({ limit: 50 })
+      ]);
+      setCtx(c); setOps(o);
+      flash('閉めました');
+    } catch (err) {
+      flash(`閉める処理に失敗: ${err.message}`);
+    } finally {
+      setClosingOpId('');
+    }
+  };
+
+  const handleDeletePost = async (item) => {
+    if (!confirm('この投稿を削除しますか?\n取り消せません。')) return;
+    try {
+      if (item.type === 'visit') {
+        await api.deleteVisit({ visit_id: item.id });
+        setVisits(visits.filter(v => v.visit_id !== item.id));
+      } else if (item.type === 'facility') {
+        await api.deleteFacilityOp({ op_id: item.id });
+        setOps(ops.filter(o => o.op_id !== item.id));
+      } else if (item.type === 'note') {
+        await api.deleteNote({ note_id: item.id });
+        setNotes(notes.filter(n => n.note_id !== item.id));
+      }
+      // 開けっぱリマインダーも変わる可能性があるので ctx 再取得
+      const c = await api.getTodayContext();
+      setCtx(c);
+      flash('削除しました');
+    } catch (err) {
+      flash(`削除失敗: ${err.message}`);
+    }
+  };
+
+    if (loading) return html`<div class="loading"><div class="loading-mark">宀</div><div class="loading-text">読み込み中</div></div>`;
   if (error) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>
@@ -142,7 +206,7 @@ export function HomePage() {
           `)}
         </section>
 
-        <!-- 堤の未完了リマインダー(該当時のみ) -->
+        <!-- 堤の未完了リマインダー(該当時のみ・インラインで閉められる) -->
         ${pendingTsutsumi.length > 0 && html`
           <section class="reminder-card">
             <div class="reminder-head">
@@ -152,21 +216,37 @@ export function HomePage() {
             <div class="reminder-body">
               ${pendingTsutsumi.map(op => html`
                 <div class="reminder-row" key=${op.op_id}>
-                  <span class="reminder-by">${op.display_name}</span>
-                  <span class="reminder-time">${formatShort(op.operated_at)}</span>
-                  <span class="reminder-elapsed">${formatElapsed(op.operated_at)}</span>
+                  <div class="reminder-row-info">
+                    <span class="reminder-by">${op.display_name}</span>
+                    <span class="reminder-time">${formatShort(op.operated_at)}</span>
+                    <span class="reminder-elapsed">${formatElapsed(op.operated_at)}</span>
+                  </div>
+                  <button class="reminder-close-btn"
+                    disabled=${closingOpId === op.op_id || !operatorId}
+                    onClick=${() => handleCloseTsutsumi(op.op_id)}>
+                    ${closingOpId === op.op_id ? '送信中…' : '閉めた'}
+                  </button>
                 </div>
               `)}
             </div>
-            <a class="reminder-action" href="#/compose">閉めに行く ›</a>
+            <div class="reminder-operator">
+              <span class="reminder-operator-label">あなた</span>
+              <select class="reminder-operator-select"
+                value=${operatorId} onChange=${e => updateOperator(e.target.value)}>
+                <option value="">── 選択 ──</option>
+                ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
+              </select>
+            </div>
           </section>
         `}
+
+        ${actionMsg && html`<div class="duty-flash">${actionMsg}</div>`}
 
         <!-- 投稿フィード -->
         <section class="feed">
           ${feed.length === 0
             ? html`<div class="empty-note">まだ投稿がありません</div>`
-            : feed.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} />`)
+            : feed.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} onDelete=${handleDeletePost} />`)
           }
         </section>
 
@@ -180,7 +260,7 @@ export function HomePage() {
 // ─────────────────────────────────────
 // 投稿カード(共通)
 // ─────────────────────────────────────
-function PostCard({ item }) {
+function PostCard({ item, onDelete }) {
   const v = item.data;
   const initial = (item.by || '?').charAt(0);
 
@@ -239,6 +319,12 @@ function PostCard({ item }) {
       `}
 
       ${body && html`<div class="post-body">${body}</div>`}
+      ${onDelete && html`
+        <div class="post-foot">
+          <button class="post-delete-btn" type="button"
+            onClick=${() => onDelete(item)}>削除</button>
+        </div>
+      `}
     </article>
   `;
 }

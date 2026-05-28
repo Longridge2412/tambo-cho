@@ -41,6 +41,7 @@ export function CalendarPage() {
   const [dutyMaster, setDutyMaster] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [actionMsg, setActionMsg] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -57,7 +58,30 @@ export function CalendarPage() {
     }).catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
-  if (loading) return html`<div class="loading"><div class="loading-mark">田</div><div class="loading-text">読み込み中</div></div>`;
+  const flash = (text) => {
+    setActionMsg(text);
+    setTimeout(() => setActionMsg(''), 2500);
+  };
+  const handleDeletePost = async (item) => {
+    if (!confirm('この投稿を削除しますか?\n取り消せません。')) return;
+    try {
+      if (item.type === 'visit') {
+        await api.deleteVisit({ visit_id: item.id });
+        setVisits(visits.filter(v => v.visit_id !== item.id));
+      } else if (item.type === 'facility') {
+        await api.deleteFacilityOp({ op_id: item.id });
+        setOps(ops.filter(o => o.op_id !== item.id));
+      } else if (item.type === 'note') {
+        await api.deleteNote({ note_id: item.id });
+        setNotes(notes.filter(n => n.note_id !== item.id));
+      }
+      flash('削除しました');
+    } catch (err) {
+      flash(`削除失敗: ${err.message}`);
+    }
+  };
+
+    if (loading) return html`<div class="loading"><div class="loading-mark">田</div><div class="loading-text">読み込み中</div></div>`;
   if (error) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>
@@ -207,9 +231,10 @@ export function CalendarPage() {
             </div>
           `}
 
+          ${actionMsg && html`<div class="duty-flash">${actionMsg}</div>`}
           ${selectedPosts.length === 0
             ? html`<div class="empty-note">この日の投稿はありません</div>`
-            : selectedPosts.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} />`)
+            : selectedPosts.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} onDelete=${handleDeletePost} />`)
           }
         </section>
 
@@ -221,7 +246,7 @@ export function CalendarPage() {
 }
 
 // (Home の PostCard と同じ構造。表示一貫性のためここに置く)
-function PostCard({ item }) {
+function PostCard({ item, onDelete }) {
   const v = item.data;
   const initial = (item.by || '?').charAt(0);
   let photos = [];
@@ -270,6 +295,12 @@ function PostCard({ item }) {
         </div>
       `}
       ${body && html`<div class="post-body">${body}</div>`}
+      ${onDelete && html`
+        <div class="post-foot">
+          <button class="post-delete-btn" type="button"
+            onClick=${() => onDelete(item)}>削除</button>
+        </div>
+      `}
     </article>
   `;
 }

@@ -74,6 +74,9 @@ function dispatch(action, payload) {
     case 'addTodo':              return apiAddTodo(payload);
     case 'updateTodo':           return apiUpdateTodo(payload);
     case 'completeTodo':         return apiCompleteTodo(payload);
+    case 'deleteVisit':          return apiDeleteVisit(payload);
+    case 'deleteFacilityOp':     return apiDeleteFacilityOp(payload);
+    case 'deleteNote':           return apiDeleteNote(payload);
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -876,4 +879,35 @@ function apiCompleteTodo(payload) {
     }
   }
   throw new Error('todo_id not found: ' + payload.todo_id);
+}
+
+// ─────────────────────────────────────────
+// 削除API(投稿の片付け用)
+// ─────────────────────────────────────────
+
+function apiDeleteVisit(payload) {
+  return _deleteByIdInSheet(SHEET_NAMES.VISITS, 'visit_id', payload.visit_id);
+}
+function apiDeleteFacilityOp(payload) {
+  return _deleteByIdInSheet(SHEET_NAMES.FACILITY_OPS, 'op_id', payload.op_id);
+}
+function apiDeleteNote(payload) {
+  return _deleteByIdInSheet(SHEET_NAMES.NOTES, 'note_id', payload.note_id);
+}
+function _deleteByIdInSheet(sheetName, idCol, idValue) {
+  if (!idValue) throw new Error(idCol + ' is required');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('sheet not found: ' + sheetName);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idxId = headers.indexOf(idCol);
+  if (idxId < 0) throw new Error('header ' + idCol + ' not found');
+  for (let r = 1; r < values.length; r++) {
+    if (values[r][idxId] === idValue) {
+      sheet.deleteRow(r + 1);
+      return { id: idValue, deleted: true };
+    }
+  }
+  throw new Error(idCol + ' not found: ' + idValue);
 }

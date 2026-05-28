@@ -2250,3 +2250,97 @@ html, body {
 .memo-photo-preview {
   max-width: 100%;
 }
+
+/* ─────────────────────────────────────
+ * 堤リマインダーのインライン化(閉めたボタン+あなた選択)
+ * ───────────────────────────────────── */
+.reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+}
+.reminder-row + .reminder-row {
+  border-top: 1px dotted var(--washi-edge);
+}
+.reminder-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+}
+.reminder-close-btn {
+  flex-shrink: 0;
+  background: var(--shu);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.reminder-close-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.reminder-close-btn:active:not(:disabled) {
+  background: var(--shu-deep);
+}
+.reminder-operator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--washi-edge);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+}
+.reminder-operator-label {
+  color: var(--sumi-fade);
+  letter-spacing: 0.15em;
+  flex-shrink: 0;
+}
+.reminder-operator-select {
+  flex: 1;
+  padding: 6px 10px;
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 4px;
+  color: var(--sumi);
+}
+
+/* ─────────────────────────────────────
+ * 投稿カードの削除ボタン
+ * ───────────────────────────────────── */
+.post-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 8px;
+}
+.post-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--sumi-fade);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.post-delete-btn:hover {
+  color: var(--shu-deep);
+  background: rgba(176,74,62,0.06);
+}
