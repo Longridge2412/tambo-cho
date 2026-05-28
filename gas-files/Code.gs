@@ -77,6 +77,9 @@ function dispatch(action, payload) {
     case 'deleteVisit':          return apiDeleteVisit(payload);
     case 'deleteFacilityOp':     return apiDeleteFacilityOp(payload);
     case 'deleteNote':           return apiDeleteNote(payload);
+    case 'updateVisit':          return apiUpdateVisit(payload);
+    case 'updateFacilityOp':     return apiUpdateFacilityOp(payload);
+    case 'updateNote':           return apiUpdateNote(payload);
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -907,6 +910,74 @@ function _deleteByIdInSheet(sheetName, idCol, idValue) {
     if (values[r][idxId] === idValue) {
       sheet.deleteRow(r + 1);
       return { id: idValue, deleted: true };
+    }
+  }
+  throw new Error(idCol + ' not found: ' + idValue);
+}
+
+// ─────────────────────────────────────────
+// 更新API(投稿の編集用)
+// ─────────────────────────────────────────
+
+function apiUpdateVisit(payload) {
+  return _updateByIdInSheet(
+    SHEET_NAMES.VISITS, 'visit_id', payload.visit_id, payload,
+    ['water_level_eval', 'field2_eval', 'stream_status', 'free_note']
+  );
+}
+
+function apiUpdateFacilityOp(payload) {
+  return _updateByIdInSheet(
+    SHEET_NAMES.FACILITY_OPS, 'op_id', payload.op_id, payload,
+    ['action', 'reason', 'coordination_note', 'target']
+  );
+}
+
+function apiUpdateNote(payload) {
+  if (!payload.note_id) throw new Error('note_id is required');
+  // 本文だけは特別:updated_at も同時に更新
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.NOTES);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idxId = headers.indexOf('note_id');
+  const colMap = {};
+  headers.forEach(function (h, i) { colMap[h] = i; });
+  for (let r = 1; r < values.length; r++) {
+    if (values[r][idxId] === payload.note_id) {
+      ['content', 'pinned'].forEach(function (k) {
+        if (payload[k] !== undefined && colMap[k] !== undefined) {
+          sheet.getRange(r + 1, colMap[k] + 1).setValue(payload[k]);
+        }
+      });
+      if (colMap['updated_at'] !== undefined) {
+        sheet.getRange(r + 1, colMap['updated_at'] + 1).setValue(new Date().toISOString());
+      }
+      return { note_id: payload.note_id, updated: true };
+    }
+  }
+  throw new Error('note_id not found: ' + payload.note_id);
+}
+
+function _updateByIdInSheet(sheetName, idCol, idValue, payload, allowedFields) {
+  if (!idValue) throw new Error(idCol + ' is required');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('sheet not found: ' + sheetName);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idxId = headers.indexOf(idCol);
+  if (idxId < 0) throw new Error('header ' + idCol + ' not found');
+  const colMap = {};
+  headers.forEach(function (h, i) { colMap[h] = i; });
+  for (let r = 1; r < values.length; r++) {
+    if (values[r][idxId] === idValue) {
+      allowedFields.forEach(function (k) {
+        if (payload[k] !== undefined && colMap[k] !== undefined) {
+          sheet.getRange(r + 1, colMap[k] + 1).setValue(payload[k]);
+        }
+      });
+      return { id: idValue, updated: true };
     }
   }
   throw new Error(idCol + ' not found: ' + idValue);

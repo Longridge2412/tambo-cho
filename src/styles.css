@@ -2344,3 +2344,49 @@ html, body {
   color: var(--shu-deep);
   background: rgba(176,74,62,0.06);
 }
+
+/* ─────────────────────────────────────
+ * 投稿の編集ボタン + インライン編集フォーム
+ * ───────────────────────────────────── */
+.post-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--sumi-fade);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.post-edit-btn:hover {
+  color: var(--koke-deep);
+  background: rgba(107,122,58,0.08);
+}
+
+.post.post-edit {
+  border-color: var(--koke);
+  box-shadow: 0 0 0 1px var(--koke) inset;
+}
+.post-edit-body {
+  padding: 12px 14px 4px;
+}
+.post-edit-body .form-group {
+  margin-bottom: 12px;
+}
+.post-edit-body .f-textarea {
+  min-height: 80px;
+}
+.post-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 12px;
+}
+.post-edit-actions .btn-primary,
+.post-edit-actions .btn-ghost {
+  width: auto;
+  padding: 8px 18px;
+  font-size: 13px;
+}

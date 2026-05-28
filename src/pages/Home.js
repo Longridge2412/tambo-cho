@@ -31,6 +31,7 @@ export function HomePage() {
   const [operatorId, setOperatorId] = useState(getCurrentUser());
   const [closingOpId, setClosingOpId] = useState('');
   const [actionMsg, setActionMsg] = useState('');
+  const [editingKey, setEditingKey] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -99,6 +100,27 @@ export function HomePage() {
       flash(`閉める処理に失敗: ${err.message}`);
     } finally {
       setClosingOpId('');
+    }
+  };
+
+  const handleEditStart = (item) => setEditingKey(`${item.type}:${item.id}`);
+  const handleEditCancel = () => setEditingKey(null);
+  const handleEditSave = async (item, updates) => {
+    try {
+      if (item.type === 'visit') {
+        await api.updateVisit({ visit_id: item.id, ...updates });
+        setVisits(visits.map(v => v.visit_id === item.id ? { ...v, ...updates } : v));
+      } else if (item.type === 'facility') {
+        await api.updateFacilityOp({ op_id: item.id, ...updates });
+        setOps(ops.map(o => o.op_id === item.id ? { ...o, ...updates } : o));
+      } else if (item.type === 'note') {
+        await api.updateNote({ note_id: item.id, ...updates });
+        setNotes(notes.map(n => n.note_id === item.id ? { ...n, ...updates } : n));
+      }
+      setEditingKey(null);
+      flash('保存しました');
+    } catch (err) {
+      flash(`保存失敗: ${err.message}`);
     }
   };
 
@@ -246,7 +268,15 @@ export function HomePage() {
         <section class="feed">
           ${feed.length === 0
             ? html`<div class="empty-note">まだ投稿がありません</div>`
-            : feed.map(item => html`<${PostCard} key=${item.type + ':' + item.id} item=${item} onDelete=${handleDeletePost} />`)
+            : feed.map(item => {
+                const k = item.type + ':' + item.id;
+                if (editingKey === k) {
+                  return html`<${EditPost} key=${k} item=${item}
+                    onSave=${handleEditSave} onCancel=${handleEditCancel} />`;
+                }
+                return html`<${PostCard} key=${k} item=${item}
+                  onEdit=${handleEditStart} onDelete=${handleDeletePost} />`;
+              })
           }
         </section>
 
@@ -260,7 +290,7 @@ export function HomePage() {
 // ─────────────────────────────────────
 // 投稿カード(共通)
 // ─────────────────────────────────────
-function PostCard({ item, onDelete }) {
+function PostCard({ item, onEdit, onDelete }) {
   const v = item.data;
   const initial = (item.by || '?').charAt(0);
 
@@ -319,12 +349,126 @@ function PostCard({ item, onDelete }) {
       `}
 
       ${body && html`<div class="post-body">${body}</div>`}
-      ${onDelete && html`
+      ${(onEdit || onDelete) && html`
         <div class="post-foot">
-          <button class="post-delete-btn" type="button"
-            onClick=${() => onDelete(item)}>削除</button>
+          ${onEdit && html`<button class="post-edit-btn" type="button"
+            onClick=${() => onEdit(item)}>編集</button>`}
+          ${onDelete && html`<button class="post-delete-btn" type="button"
+            onClick=${() => onDelete(item)}>削除</button>`}
         </div>
       `}
+    </article>
+  `;
+}
+
+// ─────────────────────────────────────
+// 投稿編集フォーム(インライン)
+// ─────────────────────────────────────
+function EditPost({ item, onSave, onCancel }) {
+  const v = item.data;
+  const [eval1, setEval1]               = useState(v.water_level_eval || '');
+  const [eval2, setEval2]               = useState(v.field2_eval || '');
+  const [streamStatus, setStreamStatus] = useState(v.stream_status || '');
+  const [freeNote, setFreeNote]         = useState(v.free_note || '');
+  const [opAction, setOpAction]         = useState(v.action || '');
+  const [opReason, setOpReason]         = useState(v.reason || '');
+  const [noteContent, setNoteContent]   = useState(v.content || v.body || '');
+  const [busy, setBusy]                 = useState(false);
+
+  const handleSave = async () => {
+    setBusy(true);
+    let updates = {};
+    if (item.type === 'visit') {
+      updates = {
+        water_level_eval: eval1, field2_eval: eval2,
+        stream_status: streamStatus, free_note: freeNote
+      };
+    } else if (item.type === 'facility') {
+      updates = { action: opAction, reason: opReason };
+    } else if (item.type === 'note') {
+      updates = { content: noteContent };
+    }
+    try { await onSave(item, updates); } finally { setBusy(false); }
+  };
+
+  return html`
+    <article class="post post-edit">
+      <header class="post-head">
+        <div class="post-avatar">${(item.by || '?').charAt(0)}</div>
+        <div class="post-meta">
+          <div class="post-by">${item.by}</div>
+          <div class="post-time">編集中…</div>
+        </div>
+      </header>
+      <div class="post-edit-body">
+        ${item.type === 'visit' && html`
+          <div class="form-group">
+            <div class="f-label">水位(三畝)</div>
+            <div class="toggle-group">
+              ${['高', '適', '低'].map(opt => html`
+                <button key=${opt} type="button"
+                  class=${`toggle-btn ${eval1 === opt ? 'active' : ''}`}
+                  onClick=${() => setEval1(eval1 === opt ? '' : opt)}>${opt}</button>
+              `)}
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="f-label">水位(一反)</div>
+            <div class="toggle-group">
+              ${['高', '適', '低'].map(opt => html`
+                <button key=${opt} type="button"
+                  class=${`toggle-btn ${eval2 === opt ? 'active' : ''}`}
+                  onClick=${() => setEval2(eval2 === opt ? '' : opt)}>${opt}</button>
+              `)}
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="f-label">カイヌマ疎水</div>
+            <div class="toggle-group">
+              ${['通常', '弱い', 'ほぼなし'].map(opt => html`
+                <button key=${opt} type="button"
+                  class=${`toggle-btn ${streamStatus === opt ? 'active' : ''}`}
+                  onClick=${() => setStreamStatus(streamStatus === opt ? '' : opt)}>${opt}</button>
+              `)}
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="f-label">本文</div>
+            <textarea class="f-input f-textarea"
+              value=${freeNote} onChange=${e => setFreeNote(e.target.value)}/>
+          </div>
+        `}
+        ${item.type === 'facility' && html`
+          <div class="form-group">
+            <div class="f-label">動作</div>
+            <div class="toggle-group">
+              ${['開けた', '閉めた'].map(opt => html`
+                <button key=${opt} type="button"
+                  class=${`toggle-btn ${opAction === opt ? 'active' : ''}`}
+                  onClick=${() => setOpAction(opAction === opt ? '' : opt)}>${opt}</button>
+              `)}
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="f-label">理由・メモ</div>
+            <textarea class="f-input f-textarea"
+              value=${opReason} onChange=${e => setOpReason(e.target.value)}/>
+          </div>
+        `}
+        ${item.type === 'note' && html`
+          <div class="form-group">
+            <div class="f-label">本文</div>
+            <textarea class="f-input f-textarea"
+              value=${noteContent} onChange=${e => setNoteContent(e.target.value)}/>
+          </div>
+        `}
+      </div>
+      <div class="post-edit-actions">
+        <button class="btn-ghost" type="button" onClick=${onCancel} disabled=${busy}>キャンセル</button>
+        <button class="btn-primary" type="button" onClick=${handleSave} disabled=${busy}>
+          ${busy ? '保存中…' : '保存'}
+        </button>
+      </div>
     </article>
   `;
 }
