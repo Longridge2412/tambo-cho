@@ -12,6 +12,7 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { formatShort } from '../utils.js';
 import { Header } from '../components/Header.js';
+import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
@@ -43,6 +44,7 @@ export function CalendarPage() {
   const [error, setError]     = useState(null);
   const [actionMsg, setActionMsg] = useState('');
   const [editingKey, setEditingKey] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -263,7 +265,8 @@ export function CalendarPage() {
                     onSave=${handleEditSave} onCancel=${handleEditCancel} />`;
                 }
                 return html`<${PostCard} key=${k} item=${item}
-                  onEdit=${handleEditStart} onDelete=${handleDeletePost} />`;
+                  onEdit=${handleEditStart} onDelete=${handleDeletePost}
+                  onPhotoClick=${(url) => setLightboxUrl(toLightboxUrl(url))} />`;
               })
           }
         </section>
@@ -271,12 +274,13 @@ export function CalendarPage() {
       </main>
 
       <${BottomNav} current="#/calendar" />
+      <${Lightbox} url=${lightboxUrl} onClose=${() => setLightboxUrl('')} />
     </div>
   `;
 }
 
 // (Home の PostCard と同じ構造。表示一貫性のためここに置く)
-function PostCard({ item, onEdit, onDelete }) {
+function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
   const v = item.data;
   const initial = (item.by || '?').charAt(0);
   let photos = [];
@@ -312,7 +316,8 @@ function PostCard({ item, onEdit, onDelete }) {
       ${photos.length > 0 && html`
         <div class=${`post-photos count-${photos.length}`}>
           ${photos.map(p => html`
-            <div class="post-photo-cell" key=${p.url}>
+            <div class="post-photo-cell" key=${p.url}
+              onClick=${() => onPhotoClick && onPhotoClick(p.url)}>
               <img class="post-photo" src=${p.url} alt=${p.label}/>
               ${p.label && html`<span class="post-photo-label">${p.label}</span>`}
             </div>

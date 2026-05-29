@@ -14,6 +14,7 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
+import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
 import { formatShort, formatElapsed } from '../utils.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
@@ -32,6 +33,7 @@ export function HomePage() {
   const [closingOpId, setClosingOpId] = useState('');
   const [actionMsg, setActionMsg] = useState('');
   const [editingKey, setEditingKey] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -275,7 +277,8 @@ export function HomePage() {
                     onSave=${handleEditSave} onCancel=${handleEditCancel} />`;
                 }
                 return html`<${PostCard} key=${k} item=${item}
-                  onEdit=${handleEditStart} onDelete=${handleDeletePost} />`;
+                  onEdit=${handleEditStart} onDelete=${handleDeletePost}
+                  onPhotoClick=${(url) => setLightboxUrl(toLightboxUrl(url))} />`;
               })
           }
         </section>
@@ -283,6 +286,7 @@ export function HomePage() {
       </main>
 
       <${BottomNav} current="#/" />
+      <${Lightbox} url=${lightboxUrl} onClose=${() => setLightboxUrl('')} />
     </div>
   `;
 }
@@ -290,7 +294,7 @@ export function HomePage() {
 // ─────────────────────────────────────
 // 投稿カード(共通)
 // ─────────────────────────────────────
-function PostCard({ item, onEdit, onDelete }) {
+function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
   const v = item.data;
   const initial = (item.by || '?').charAt(0);
 
@@ -334,7 +338,8 @@ function PostCard({ item, onEdit, onDelete }) {
       ${photos.length > 0 && html`
         <div class=${`post-photos count-${photos.length}`}>
           ${photos.map(p => html`
-            <div class="post-photo-cell" key=${p.url}>
+            <div class="post-photo-cell" key=${p.url}
+              onClick=${() => onPhotoClick && onPhotoClick(p.url)}>
               <img class="post-photo" src=${p.url} alt=${p.label}/>
               ${p.label && html`<span class="post-photo-label">${p.label}</span>`}
             </div>
