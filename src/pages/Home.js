@@ -39,6 +39,8 @@ export function HomePage() {
   const [actionMsg, setActionMsg] = useState('');
   const [editingKey, setEditingKey] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState('');
+  const [editTransplant, setEditTransplant] = useState(false);
+  const [transplantEdit, setTransplantEdit] = useState({});
 
   useEffect(() => {
     Promise.all([
@@ -72,7 +74,37 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const updateOperator = (id) => {
+  // 田植え日を編集モードに切り替えたとき、現在値で初期化
+  useEffect(() => {
+    if (phenology && editTransplant) {
+      const o = {};
+      phenology.forEach(p => { o[p.paddy_key] = p.transplant_date || ''; });
+      setTransplantEdit(o);
+    }
+  }, [editTransplant, phenology]);
+
+  const saveTransplant = async () => {
+    try {
+      for (const p of (phenology || [])) {
+        const newVal = transplantEdit[p.paddy_key] || '';
+        if (newVal !== (p.transplant_date || '')) {
+          await api.updatePaddyPhenology({ paddy_key: p.paddy_key, transplant_date: newVal });
+        }
+      }
+      const rows = await api.listPaddyPhenology();
+      const withProgress = await Promise.all(rows.map(async (r) => ({
+        ...r,
+        progress: r.transplant_date ? await getPaddyProgress(r.transplant_date, r.heading_date) : null
+      })));
+      setPhenology(withProgress);
+      setEditTransplant(false);
+      flash('田植え日を更新しました');
+    } catch (err) {
+      flash(`更新失敗: ${err.message}`);
+    }
+  };
+
+  const updateOperator = (id) = {
     setOperatorId(id);
     setCurrentUser(id);
   };
@@ -209,25 +241,56 @@ export function HomePage() {
           </div>
           <${WaterPlanChart} transplantYmd=${transplantYmd} />
 
-          <!-- 稲の暦(積算温度) -->
-          ${!phenology && !phenologyError && html`<div class="meyasu-loading">気温データ読み込み中…</div>`}
-          ${phenologyError && html`<div class="meyasu-loading">気温データ取得失敗</div>`}
+          <!-- 田植え日編集ボタン -->
+          <div class="meyasu-edit-row">
+            ${editTransplant
+              ? html`
+                <div class="transplant-edit">
+                  ${(phenology || []).map(p => html`
+                    <div class="transplant-edit-row" key=${p.paddy_key}>
+                      <span class="transplant-edit-label">${p.paddy_name}</span>
+                      <input type="date" class="f-input f-date"
+                        value=${transplantEdit[p.paddy_key] || ''}
+                        onChange=${e => setTransplantEdit({...transplantEdit, [p.paddy_key]: e.target.value})}/>
+                    </div>
+                  `)}
+                  <div class="transplant-edit-actions">
+                    <button class="btn-ghost" onClick=${() => setEditTransplant(false)}>キャンセル</button>
+                    <button class="btn-primary" onClick=${saveTransplant}>保存</button>
+                  </div>
+                </div>
+              `
+              : html`<button class="meyasu-edit-link" onClick=${() => setEditTransplant(true)}>田植え日を編集</button>`
+            }
+          </div>
+        </section>
+
+        <!-- 稲の暦(積算温度) — 独立カードで大きく -->
+        <section class="gdd-section">
+          <div class="gdd-section-title">稲 の 暦</div>
+          ${!phenology && !phenologyError && html`<div class="empty-note">気温データを読み込み中…</div>`}
+          ${phenologyError && html`<div class="empty-note">気温データの取得に失敗しました</div>`}
           ${phenology && phenology.map(r => html`
-            <div class="gdd-line" key=${r.paddy_key}>
-              <span class="gdd-paddy">${r.paddy_name}</span>
+            <div class="gdd-bigcard" key=${r.paddy_key}>
+              <div class="gdd-bigcard-head">
+                <span class="gdd-bigcard-name">${r.paddy_name}</span>
+                ${r.progress && html`<span class="gdd-bigcard-days">田植え ${r.progress.days}日目</span>`}
+              </div>
               ${r.progress
                 ? html`
-                  <span class="gdd-info">
-                    ${r.progress.days}日目 ・ 積算 ${r.progress.gdd}°C·日
+                  <div class="gdd-bigcard-figure">${r.progress.gdd}<span class="gdd-bigcard-unit">°C·日</span></div>
+                  <div class="gdd-bigcard-bar"><div class="gdd-bigcard-bar-fill" style=${`width:${r.progress.pct}%`}></div></div>
+                  <div class="gdd-bigcard-meta">
+                    <span>目標 ${r.progress.target}°C·日</span>
                     ${r.progress.predicted_date && html`
-                      ・ <span class="gdd-pred">
-                        ${r.progress.phase === 'transplant_to_heading' ? '出穂' : '刈取り'}
+                      <span class="gdd-bigcard-pred">
+                        ${r.progress.phase === 'transplant_to_heading' ? '出穂見込み' : '刈取り適期'}
                         ${ymdToMd(r.progress.predicted_date)}ごろ
                       </span>
                     `}
-                  </span>
+                  </div>
                 `
-                : html`<span class="gdd-info dim">田植え日未設定</span>`
+                : html`<div class="gdd-bigcard-empty">田植え日が未設定</div>`
               }
             </div>
           `)}

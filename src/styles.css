@@ -2578,11 +2578,12 @@ html, body {
 }
 .hh-logo {
   width: auto;
-  height: 36px;
+  height: 56px;
+  display: block;
 }
 .hh-quote {
   flex: 1;
-  max-width: 60%;
+  max-width: 56%;
   text-align: right;
   font-family: 'Klee One', serif;
 }
@@ -2590,51 +2591,58 @@ html, body {
   font-size: 10px;
   color: var(--sumi-fade);
   letter-spacing: 0.2em;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .hh-quote-text {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--sumi);
-  line-height: 1.5;
+  line-height: 1.6;
   font-family: 'Shippori Mincho', serif;
 }
 .hh-date-row {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 16px;
+  margin-top: 6px;
 }
 .hh-date-major {
   font-family: 'Shippori Mincho', serif;
   color: var(--sumi);
+  display: flex;
+  align-items: baseline;
+  letter-spacing: -0.04em;
   line-height: 1;
-  letter-spacing: -0.02em;
 }
 .hh-date-month {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 400;
+  position: relative;
+  top: -2px;
 }
 .hh-date-slash {
-  font-size: 28px;
-  margin: 0 2px;
+  font-size: 22px;
+  margin: 0 4px;
   color: var(--sumi-fade);
+  font-weight: 300;
 }
 .hh-date-day {
-  font-size: 54px;
-  font-weight: 500;
+  font-size: 64px;
+  font-weight: 600;
 }
 .hh-date-side {
   font-family: 'Klee One', serif;
+  padding-bottom: 10px;
 }
 .hh-date-time {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--sumi);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.18em;
   margin-bottom: 4px;
 }
 .hh-date-dow {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--sumi-fade);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 
 /* ─────────────────────────────────────
@@ -2715,4 +2723,141 @@ html, body {
   font-size: 11px;
   color: var(--sumi-fade);
   padding: 8px 0;
+}
+
+
+/* ─────────────────────────────────────
+ * 田植え日 編集 + 積算温度カード(独立大表示)
+ * ───────────────────────────────────── */
+.meyasu-edit-row {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dotted var(--washi-edge);
+}
+.meyasu-edit-link {
+  background: transparent;
+  border: none;
+  color: var(--sumi-fade);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.meyasu-edit-link:hover {
+  color: var(--shu);
+}
+
+.transplant-edit {
+  padding: 6px 0;
+}
+.transplant-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+}
+.transplant-edit-label {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi);
+  min-width: 5em;
+  letter-spacing: 0.06em;
+}
+.transplant-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.transplant-edit-actions .btn-primary,
+.transplant-edit-actions .btn-ghost {
+  width: auto;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* 積算温度カード(独立) */
+.gdd-section {
+  margin: 16px 0;
+}
+.gdd-section-title {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.3em;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.gdd-bigcard {
+  background: var(--washi);
+  border: 1px solid var(--washi-edge);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 8px 0;
+}
+.gdd-bigcard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.gdd-bigcard-name {
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sumi);
+  letter-spacing: 0.08em;
+}
+.gdd-bigcard-days {
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.gdd-bigcard-figure {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--sumi);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 4px 0;
+}
+.gdd-bigcard-unit {
+  font-family: 'Klee One', serif;
+  font-size: 13px;
+  color: var(--sumi-fade);
+  margin-left: 6px;
+  font-weight: 400;
+}
+.gdd-bigcard-bar {
+  height: 5px;
+  background: var(--washi-edge);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+.gdd-bigcard-bar-fill {
+  height: 100%;
+  background: var(--koke);
+  transition: width 0.4s ease-out;
+}
+.gdd-bigcard-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+}
+.gdd-bigcard-pred {
+  color: var(--shu);
+  font-weight: 500;
+}
+.gdd-bigcard-empty {
+  font-family: 'Klee One', serif;
+  font-size: 12px;
+  color: var(--sumi-fade);
+  padding: 6px 0;
 }
