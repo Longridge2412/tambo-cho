@@ -15,8 +15,10 @@ import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
-import { formatShort, formatElapsed } from '../utils.js';
+import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils.js';
 import { Header } from '../components/Header.js';
+import { HomeHeader } from '../components/HomeHeader.js';
+import { avatarFor } from '../data/member_avatars.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
@@ -182,7 +184,7 @@ export function HomePage() {
 
   return html`
     <div class="screen">
-      <${Header} title="N E O 百" />
+      <${HomeHeader} />
 
       <main class="screen-body home-v2">
 
@@ -312,8 +314,8 @@ function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
   // タグ
   let tags = [];
   if (item.type === 'visit') {
-    if (v.water_level_eval) tags.push(`三畝 ${v.water_level_eval}`);
-    if (v.field2_eval)      tags.push(`一反 ${v.field2_eval}`);
+    if (v.water_level_eval) tags.push(`三畝 ${evalSymbol(v.water_level_eval)}`);
+    if (v.field2_eval)      tags.push(`一反 ${evalSymbol(v.field2_eval)}`);
     if (v.stream_status)    tags.push(`疎水 ${v.stream_status}`);
   } else if (item.type === 'facility') {
     tags.push(`${v.target}${v.action ? ' ' + v.action : ''}`);
@@ -325,10 +327,15 @@ function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
   else if (item.type === 'facility') body = v.reason || v.coordination_note || '';
   else if (item.type === 'note')     body = v.content || v.body || '';
 
+  const avatarUrl = avatarFor(item.by);
+  const colorClass = cardColorClass(item.ts);
   return html`
-    <article class="post">
+    <article class=${`post ${colorClass}`}>
       <header class="post-head">
-        <div class="post-avatar">${initial}</div>
+        ${avatarUrl
+          ? html`<img class="post-avatar-img" src=${avatarUrl} alt=${item.by}/>`
+          : html`<div class="post-avatar">${initial}</div>`
+        }
         <div class="post-meta">
           <div class="post-by">${item.by}</div>
           <div class="post-time">${formatShort(item.ts)}</div>

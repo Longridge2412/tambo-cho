@@ -1,9 +1,9 @@
 /**
- * ボトムナビゲーション
+ * ボトムナビ(ピル型 + FAB 分離)
  *
- * 3タブ + 中央フローティング「+」ボタン構成。
- *   ホーム / Todo / カレンダー
- *   中央の「+」は共有フォーム(#/compose)へ
+ * 配置:
+ *   左下に大きめの朱色「+」FAB(独立)
+ *   右下に白い角丸ピル(3アイコン:家/Todo/カレンダー)
  */
 
 const { createElement: h } = React;
@@ -17,28 +17,21 @@ const TABS = [
 
 export function BottomNav({ current }) {
   return html`
-    <nav class="bottom-nav-v2">
-      <a href=${TABS[0].route}
-         class=${`navv2-item ${current === TABS[0].route ? 'active' : ''}`}>
-        <div class="navv2-sym">${TABS[0].symbol}</div>
-        <div class="navv2-label">${TABS[0].label}</div>
-      </a>
-      <a href=${TABS[1].route}
-         class=${`navv2-item ${current === TABS[1].route ? 'active' : ''}`}>
-        <div class="navv2-sym">${TABS[1].symbol}</div>
-        <div class="navv2-label">${TABS[1].label}</div>
-      </a>
+    <div class="bottom-zone">
       <a href="#/compose"
-         class=${`navv2-fab ${current === '#/compose' ? 'active' : ''}`}
+         class=${`navp-fab ${current === '#/compose' ? 'active' : ''}`}
          aria-label="共有">
-        <div class="navv2-fab-plus">＋</div>
+        <div class="navp-fab-plus">＋</div>
       </a>
-      <a href=${TABS[2].route}
-         class=${`navv2-item ${current === TABS[2].route ? 'active' : ''}`}>
-        <div class="navv2-sym">${TABS[2].symbol}</div>
-        <div class="navv2-label">${TABS[2].label}</div>
-      </a>
-      <div class="navv2-spacer"></div>
-    </nav>
+      <nav class="navp-pill">
+        ${TABS.map(t => html`
+          <a key=${t.route} href=${t.route}
+             class=${`navp-item ${current === t.route ? 'active' : ''}`}
+             aria-label=${t.label}>
+            <div class="navp-sym">${t.symbol}</div>
+          </a>
+        `)}
+      </nav>
+    </div>
   `;
 }

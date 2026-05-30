@@ -317,3 +317,33 @@ export function buildComposeShareText(parts) {
 
   return lines.join('\n');
 }
+
+/**
+ * 水位評価の表示記号化(◎=適, ○=高, △=低)
+ */
+export function evalSymbol(text) {
+  if (text === '適') return '◎';
+  if (text === '高') return '○';
+  if (text === '低') return '△';
+  return text || '';
+}
+
+/**
+ * 投稿の日時から、カード背景色クラスを決める。
+ *   日の偶奇 × 時間帯(朝〜15時 / 夕16時〜) = 4パターン
+ *   - A日 朝: card-c1 (スレートブルー)
+ *   - A日 夕: card-c2 (テラコッタ)
+ *   - B日 朝: card-c3 (スレートグリーン)
+ *   - B日 夕: card-c4 (バーガンディ)
+ */
+export function cardColorClass(ts) {
+  if (!ts) return 'card-c1';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return 'card-c1';
+  const dayParity = d.getDate() % 2;
+  const isEvening = d.getHours() >= 16;
+  if (dayParity === 0 && !isEvening) return 'card-c1';
+  if (dayParity === 0 &&  isEvening) return 'card-c2';
+  if (dayParity === 1 && !isEvening) return 'card-c3';
+  return 'card-c4';
+}

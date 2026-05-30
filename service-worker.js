@@ -7,7 +7,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v31';
+const CACHE_NAME = 'tambo-cho-v32';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -30,6 +30,19 @@ const STATIC_FILES = [
   './src/components/BottomNav.js',
   './src/components/Header.js',
   './src/components/Lightbox.js',
+  './src/components/HomeHeader.js',
+  './src/data/quotes.js',
+  './src/data/water_plan.js',
+  './src/data/member_avatars.js',
+  './assets/logo/neo-hyaku-h.png',
+  './assets/avatars/sae.png',
+  './assets/avatars/misaki.png',
+  './assets/avatars/katoken.png',
+  './assets/avatars/kousuke.png',
+  './assets/avatars/shunki.png',
+  './assets/avatars/kotori.png',
+  './assets/avatars/yuta.png',
+  './assets/avatars/nagahashi.png',
   './src/styles.css',
   './src/services/phenology.js',
   './src/services/currentUser.js',
