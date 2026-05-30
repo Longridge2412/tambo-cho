@@ -19,11 +19,9 @@ import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils
 import { Header } from '../components/Header.js';
 import { HomeHeader } from '../components/HomeHeader.js';
 import { avatarFor } from '../data/member_avatars.js';
-import { PaddyIllustration } from '../components/PaddyIllustration.js';
-import { WaterPlanChart } from '../components/WaterPlanChart.js';
-import { currentWaterStage } from '../data/water_plan.js';
 import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
+import { MeyasuCard } from '../components/MeyasuCard.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
@@ -41,8 +39,6 @@ export function HomePage() {
   const [actionMsg, setActionMsg] = useState('');
   const [editingKey, setEditingKey] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState('');
-  const [editTransplant, setEditTransplant] = useState(false);
-  const [transplantEdit, setTransplantEdit] = useState({});
 
   useEffect(() => {
     Promise.all([
@@ -76,19 +72,10 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // 田植え日を編集モードに切り替えたとき、現在値で初期化
-  useEffect(() => {
-    if (phenology && editTransplant) {
-      const o = {};
-      phenology.forEach(p => { o[p.paddy_key] = p.transplant_date || ''; });
-      setTransplantEdit(o);
-    }
-  }, [editTransplant, phenology]);
-
-  const saveTransplant = async () => {
+  const saveTransplant = async (edits) => {
     try {
       for (const p of (phenology || [])) {
-        const newVal = transplantEdit[p.paddy_key] || '';
+        const newVal = edits[p.paddy_key] || '';
         if (newVal !== (p.transplant_date || '')) {
           await api.updatePaddyPhenology({ paddy_key: p.paddy_key, transplant_date: newVal });
         }
@@ -99,10 +86,10 @@ export function HomePage() {
         progress: r.transplant_date ? await getPaddyProgress(r.transplant_date, r.heading_date) : null
       })));
       setPhenology(withProgress);
-      setEditTransplant(false);
       flash('田植え日を更新しました');
     } catch (err) {
       flash(`更新失敗: ${err.message}`);
+      throw err;
     }
   };
 
@@ -199,9 +186,6 @@ export function HomePage() {
   const target = ctx.target;
   const pendingTsutsumi = ctx.pending_tsutsumi || [];
 
-  // 田植え日(三畝・一反は同じ前提で1つ目を使う)
-  const transplantYmd = phenology && phenology.length > 0 ? phenology[0].transplant_date : '';
-  const currentStage = transplantYmd ? currentWaterStage(transplantYmd) : null;
 
   // メンバーID → 表示名
   const memberMap = {};
@@ -229,43 +213,7 @@ export function HomePage() {
 
       <main class="screen-body home-v2">
 
-        <!-- 今の目安:苗イラスト + 段階ラベル + 水位プラン -->
-        <section class="meyasu-card">
-          <div class="meyasu-row meyasu-row-v2">
-            <div class="meyasu-visual">
-              <${PaddyIllustration} waterLevel=${stageToLevel(currentStage)} />
-            </div>
-            <div class="meyasu-text">
-              <div class="meyasu-label">目 安</div>
-              <div class="meyasu-main-v2">${currentStage ? currentStage.label : '田植え日未設定'}</div>
-              ${currentStage && html`<div class="meyasu-sub">田植え${currentStage.days_since_transplant}日目</div>`}
-            </div>
-          </div>
-          <${WaterPlanChart} transplantYmd=${transplantYmd} />
-
-          <!-- 田植え日編集ボタン -->
-          <div class="meyasu-edit-row">
-            ${editTransplant
-              ? html`
-                <div class="transplant-edit">
-                  ${(phenology || []).map(p => html`
-                    <div class="transplant-edit-row" key=${p.paddy_key}>
-                      <span class="transplant-edit-label">${p.paddy_name}</span>
-                      <input type="date" class="f-input f-date"
-                        value=${transplantEdit[p.paddy_key] || ''}
-                        onChange=${e => setTransplantEdit({...transplantEdit, [p.paddy_key]: e.target.value})}/>
-                    </div>
-                  `)}
-                  <div class="transplant-edit-actions">
-                    <button class="btn-ghost" onClick=${() => setEditTransplant(false)}>キャンセル</button>
-                    <button class="btn-primary" onClick=${saveTransplant}>保存</button>
-                  </div>
-                </div>
-              `
-              : html`<button class="meyasu-edit-link" onClick=${() => setEditTransplant(true)}>田植え日を編集</button>`
-            }
-          </div>
-        </section>
+        <${MeyasuCard} phenology=${phenology} onSaveTransplant=${saveTransplant} />
 
         <!-- 稲の暦(積算温度) — 独立カードで大きく -->
         <section class="gdd-section">
@@ -392,10 +340,4 @@ function ymdToMd(ymd) {
   const d = new Date(ymd + 'T00:00:00');
   if (isNaN(d.getTime())) return ymd;
   return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-function stageToLevel(stage) {
-  if (!stage) return 0.5;
-  const cm = stage.depth_cm || 0;
-  return Math.min(1, cm / 5);
 }
