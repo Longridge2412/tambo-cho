@@ -20,44 +20,47 @@
   <link rel="stylesheet" href="./src/styles.css">
 
   <style>
+    /* スプラッシュ:中央寄せ + 観音開きで左右に消える */
     #splash {
       position: fixed;
       inset: 0;
       z-index: 9999;
-      display: flex;
+      background: #ffffff;
       overflow: hidden;
+      transition: opacity 0.4s ease-out;
     }
     .splash-half {
+      position: absolute;
+      top: 0;
       width: 50vw;
       height: 100vh;
       overflow: hidden;
       background: #ffffff;
       transition: transform 0.7s cubic-bezier(0.66, 0, 0.34, 1);
     }
+    .splash-left { left: 0; }
+    .splash-right { left: 50vw; }
     .splash-half-inner {
+      position: absolute;
+      top: 50%;
       width: 100vw;
-      height: 100vh;
+      height: auto;
       display: flex;
       align-items: center;
       justify-content: center;
+      transform: translateY(-50%);
     }
-    .splash-right .splash-half-inner {
-      margin-left: -50vw;
-    }
+    .splash-left .splash-half-inner { left: 0; }
+    .splash-right .splash-half-inner { left: -50vw; }
     .splash-logo {
-      height: 90vh;
+      height: 70vh;
+      max-height: 600px;
       width: auto;
-      max-width: 94vw;
+      max-width: 90vw;
     }
-    #splash.open .splash-left {
-      transform: translateX(-100%);
-    }
-    #splash.open .splash-right {
-      transform: translateX(100%);
-    }
-    #splash.gone {
-      display: none;
-    }
+    #splash.open .splash-left { transform: translateX(-100%); }
+    #splash.open .splash-right { transform: translateX(100%); }
+    #splash.gone { display: none; }
   </style>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -85,6 +88,21 @@
   </div>
 
   <script type="module" src="./src/main.js"></script>
+
+  <script>
+    // スプラッシュを必ず閉じる(main.js の状態に依存しない)
+    (function closeSplash() {
+      var splash = document.getElementById('splash');
+      if (!splash) return;
+      var MIN_SHOW = 2500;
+      var start = window.__appStart || Date.now();
+      var wait = Math.max(0, MIN_SHOW - (Date.now() - start));
+      setTimeout(function () {
+        splash.classList.add('open');
+        setTimeout(function () { splash.classList.add('gone'); }, 750);
+      }, wait);
+    })();
+  </script>
 
   <script>
     // Service Worker 登録 + 新バージョン検知バナー

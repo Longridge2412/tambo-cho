@@ -148,7 +148,7 @@ export function HistoryPage() {
   }, []);
 
   if (loading) {
-    return html`<div class="loading"><div class="loading-mark">綴</div><div class="loading-text">読み込み中</div></div>`;
+    return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
   }
   if (error) {
     return html`

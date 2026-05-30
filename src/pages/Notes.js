@@ -91,7 +91,7 @@ export function NotesPage() {
   };
 
   if (loading) {
-    return html`<div class="loading"><div class="loading-mark">覚</div><div class="loading-text">読み込み中</div></div>`;
+    return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
   }
 
   if (error && !composing) {

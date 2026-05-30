@@ -57,14 +57,3 @@ function App() {
 const root = createRoot(document.getElementById('root'));
 root.render(h(App));
 
-(function closeSplash() {
-  const splash = document.getElementById('splash');
-  if (!splash) return;
-  const MIN_SHOW = 2500;
-  const start = window.__appStart || Date.now();
-  const wait = Math.max(0, MIN_SHOW - (Date.now() - start));
-  setTimeout(() => {
-    splash.classList.add('open');
-    setTimeout(() => splash.classList.add('gone'), 750);
-  }, wait);
-})();

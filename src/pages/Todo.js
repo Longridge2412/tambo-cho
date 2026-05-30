@@ -107,7 +107,7 @@ export function TodoPage() {
     }
   };
 
-  if (loading) return html`<div class="loading"><div class="loading-mark">✓</div><div class="loading-text">読み込み中</div></div>`;
+  if (loading) return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
   if (error && todos.length === 0) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>

@@ -106,7 +106,7 @@ export function CalendarPage() {
     }
   };
 
-    if (loading) return html`<div class="loading"><div class="loading-mark">田</div><div class="loading-text">読み込み中</div></div>`;
+    if (loading) return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
   if (error) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>
