@@ -2636,3 +2636,83 @@ html, body {
   color: var(--sumi-fade);
   letter-spacing: 0.1em;
 }
+
+/* ─────────────────────────────────────
+ * Phase γ:6日天気予報
+ * ───────────────────────────────────── */
+.wx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  margin-bottom: 12px;
+  font-family: 'Klee One', serif;
+}
+.wx-row-loading {
+  text-align: center;
+  color: var(--sumi-fade);
+  font-size: 11px;
+}
+.wx-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  color: var(--sumi-fade);
+}
+.wx-cell.today {
+  color: var(--sumi);
+  font-weight: 600;
+}
+.wx-day {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.wx-svg {
+  width: 22px;
+  height: 22px;
+}
+.wx-cell.today .wx-svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ─────────────────────────────────────
+ * 今の目安 v2 (苗イラスト + 段階表示 + 水位チャート)
+ * ───────────────────────────────────── */
+.meyasu-row-v2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.meyasu-label {
+  font-family: 'Klee One', serif;
+  font-size: 10px;
+  color: var(--sumi-fade);
+  letter-spacing: 0.3em;
+  margin-bottom: 4px;
+}
+.meyasu-main-v2 {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--sumi);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.wp-chart-svg {
+  width: 100%;
+  margin: 6px 0 10px;
+}
+.wp-chart-empty {
+  text-align: center;
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  color: var(--sumi-fade);
+  padding: 8px 0;
+}

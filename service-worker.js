@@ -7,7 +7,7 @@
  *   - GAS/Drive はキャッシュせず素通り
  */
 
-const CACHE_NAME = 'tambo-cho-v33';
+const CACHE_NAME = 'tambo-cho-v34';
 const STATIC_FILES = [
   './',
   './index.html',
@@ -31,6 +31,10 @@ const STATIC_FILES = [
   './src/components/Header.js',
   './src/components/Lightbox.js',
   './src/components/HomeHeader.js',
+  './src/components/WeatherRow.js',
+  './src/components/PaddyIllustration.js',
+  './src/components/WaterPlanChart.js',
+  './src/services/weather.js',
   './src/data/quotes.js',
   './src/data/water_plan.js',
   './src/data/member_avatars.js',

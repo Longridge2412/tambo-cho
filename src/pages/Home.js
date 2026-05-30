@@ -19,6 +19,9 @@ import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils
 import { Header } from '../components/Header.js';
 import { HomeHeader } from '../components/HomeHeader.js';
 import { avatarFor } from '../data/member_avatars.js';
+import { PaddyIllustration } from '../components/PaddyIllustration.js';
+import { WaterPlanChart } from '../components/WaterPlanChart.js';
+import { currentWaterStage } from '../data/water_plan.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
@@ -162,6 +165,10 @@ export function HomePage() {
   const target = ctx.target;
   const pendingTsutsumi = ctx.pending_tsutsumi || [];
 
+  // 田植え日(三畝・一反は同じ前提で1つ目を使う)
+  const transplantYmd = phenology && phenology.length > 0 ? phenology[0].transplant_date : '';
+  const currentStage = transplantYmd ? currentWaterStage(transplantYmd) : null;
+
   // メンバーID → 表示名
   const memberMap = {};
   members.forEach(m => { memberMap[m.member_id] = m.display_name; });
@@ -188,25 +195,19 @@ export function HomePage() {
 
       <main class="screen-body home-v2">
 
-        <!-- 上部固定:今の目安 -->
+        <!-- 今の目安:苗イラスト + 段階ラベル + 水位プラン -->
         <section class="meyasu-card">
-          <div class="meyasu-head">
-            <div class="meyasu-title">今 の 目 安</div>
-          </div>
-
-          <!-- 目標水位 -->
-          <div class="meyasu-row">
-            <div class="meyasu-visual">${TargetVisual({ target })}</div>
+          <div class="meyasu-row meyasu-row-v2">
+            <div class="meyasu-visual">
+              <${PaddyIllustration} waterLevel=${stageToLevel(currentStage)} />
+            </div>
             <div class="meyasu-text">
-              ${target
-                ? html`
-                  <div class="meyasu-main">${target.target_label}</div>
-                  <div class="meyasu-sub">${target.period_label}</div>
-                `
-                : html`<div class="meyasu-main warn">目標未設定</div>`
-              }
+              <div class="meyasu-label">目 安</div>
+              <div class="meyasu-main-v2">${currentStage ? currentStage.label : '田植え日未設定'}</div>
+              ${currentStage && html`<div class="meyasu-sub">田植え${currentStage.days_since_transplant}日目</div>`}
             </div>
           </div>
+          <${WaterPlanChart} transplantYmd=${transplantYmd} />
 
           <!-- 稲の暦(積算温度) -->
           ${!phenology && !phenologyError && html`<div class="meyasu-loading">気温データ読み込み中…</div>`}
@@ -520,4 +521,10 @@ function ymdToMd(ymd) {
   const d = new Date(ymd + 'T00:00:00');
   if (isNaN(d.getTime())) return ymd;
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function stageToLevel(stage) {
+  if (!stage) return 0.5;
+  const cm = stage.depth_cm || 0;
+  return Math.min(1, cm / 5);
 }

@@ -1,15 +1,15 @@
 /**
- * ホーム専用ヘッダ(ロゴ・格言・大型日付)
- *
- *   左上に NEO百姓 ロゴ
- *   右上に今日の格言
- *   下に大型ミンチョ体の日付(5/31 形式)+時刻+曜日
+ * ホーム専用ヘッダ
+ *   左上ロゴ + 右上格言
+ *   6日天気予報
+ *   大型日付(月/日) + 時刻 + 曜日
  */
 
 const { createElement: h } = React;
 const html = htm.bind(h);
 
 import { quoteForToday } from '../data/quotes.js';
+import { WeatherRow } from './WeatherRow.js';
 
 const DOW = ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'];
 
@@ -31,8 +31,13 @@ export function HomeHeader() {
           <div class="hh-quote-text">「${q.text}」</div>
         </div>
       </div>
+      <${WeatherRow} />
       <div class="hh-date-row">
-        <div class="hh-date-major"><span class="hh-date-month">${m}</span><span class="hh-date-slash">/</span><span class="hh-date-day">${d}</span></div>
+        <div class="hh-date-major">
+          <span class="hh-date-month">${m}</span>
+          <span class="hh-date-slash">/</span>
+          <span class="hh-date-day">${d}</span>
+        </div>
         <div class="hh-date-side">
           <div class="hh-date-time">${hh} : ${mm}</div>
           <div class="hh-date-dow">${dow}</div>
