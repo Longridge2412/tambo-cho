@@ -104,7 +104,7 @@ export function HomePage() {
     }
   };
 
-  const updateOperator = (id) = {
+  const updateOperator = (id) => {
     setOperatorId(id);
     setCurrentUser(id);
   };

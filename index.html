@@ -20,47 +20,44 @@
   <link rel="stylesheet" href="./src/styles.css">
 
   <style>
-    /* スプラッシュ:中央寄せ + 観音開きで左右に消える */
     #splash {
       position: fixed;
       inset: 0;
       z-index: 9999;
-      background: #ffffff;
+      display: flex;
       overflow: hidden;
-      transition: opacity 0.4s ease-out;
     }
     .splash-half {
-      position: absolute;
-      top: 0;
       width: 50vw;
       height: 100vh;
       overflow: hidden;
       background: #ffffff;
       transition: transform 0.7s cubic-bezier(0.66, 0, 0.34, 1);
     }
-    .splash-left { left: 0; }
-    .splash-right { left: 50vw; }
     .splash-half-inner {
-      position: absolute;
-      top: 50%;
       width: 100vw;
-      height: auto;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      transform: translateY(-50%);
     }
-    .splash-left .splash-half-inner { left: 0; }
-    .splash-right .splash-half-inner { left: -50vw; }
+    .splash-right .splash-half-inner {
+      margin-left: -50vw;
+    }
     .splash-logo {
-      height: 70vh;
-      max-height: 600px;
+      height: 90vh;
       width: auto;
-      max-width: 90vw;
+      max-width: 94vw;
     }
-    #splash.open .splash-left { transform: translateX(-100%); }
-    #splash.open .splash-right { transform: translateX(100%); }
-    #splash.gone { display: none; }
+    #splash.open .splash-left {
+      transform: translateX(-100%);
+    }
+    #splash.open .splash-right {
+      transform: translateX(100%);
+    }
+    #splash.gone {
+      display: none;
+    }
   </style>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
