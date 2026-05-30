@@ -2544,12 +2544,15 @@ html, body {
   justify-content: center;
   text-decoration: none;
   color: var(--sumi-fade);
-  font-family: 'Klee One', serif;
-  font-size: 18px;
 }
 .navp-item.active {
   background: var(--sumi);
   color: #fff;
+}
+.navp-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 /* 新ナビが下にあるので画面下部に余裕 */
