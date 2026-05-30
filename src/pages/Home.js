@@ -22,6 +22,7 @@ import { avatarFor } from '../data/member_avatars.js';
 import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
 import { MeyasuCard } from '../components/MeyasuCard.js';
+import { TsutsumiReminder } from '../components/TsutsumiReminder.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
@@ -35,7 +36,6 @@ export function HomePage() {
   const [phenology, setPhenology] = useState(null);
   const [phenologyError, setPhenologyError] = useState(null);
   const [operatorId, setOperatorId] = useState(getCurrentUser());
-  const [closingOpId, setClosingOpId] = useState('');
   const [actionMsg, setActionMsg] = useState('');
   const [editingKey, setEditingKey] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState('');
@@ -104,11 +104,6 @@ export function HomePage() {
   };
 
   const handleCloseTsutsumi = async (opId) => {
-    if (!operatorId) {
-      flash('「あなた」を選んでください');
-      return;
-    }
-    setClosingOpId(opId);
     try {
       await api.addFacilityOp({
         member_id: operatorId,
@@ -126,8 +121,6 @@ export function HomePage() {
       flash('閉めました');
     } catch (err) {
       flash(`閉める処理に失敗: ${err.message}`);
-    } finally {
-      setClosingOpId('');
     }
   };
 
@@ -247,38 +240,14 @@ export function HomePage() {
         </section>
 
         <!-- 堤の未完了リマインダー(該当時のみ・インラインで閉められる) -->
-        ${pendingTsutsumi.length > 0 && html`
-          <section class="reminder-card">
-            <div class="reminder-head">
-              <div class="reminder-mark">堤</div>
-              <div class="reminder-label">開 け た ま ま</div>
-            </div>
-            <div class="reminder-body">
-              ${pendingTsutsumi.map(op => html`
-                <div class="reminder-row" key=${op.op_id}>
-                  <div class="reminder-row-info">
-                    <span class="reminder-by">${op.display_name}</span>
-                    <span class="reminder-time">${formatShort(op.operated_at)}</span>
-                    <span class="reminder-elapsed">${formatElapsed(op.operated_at)}</span>
-                  </div>
-                  <button class="reminder-close-btn"
-                    disabled=${closingOpId === op.op_id || !operatorId}
-                    onClick=${() => handleCloseTsutsumi(op.op_id)}>
-                    ${closingOpId === op.op_id ? '送信中…' : '閉めた'}
-                  </button>
-                </div>
-              `)}
-            </div>
-            <div class="reminder-operator">
-              <span class="reminder-operator-label">あなた</span>
-              <select class="reminder-operator-select"
-                value=${operatorId} onChange=${e => updateOperator(e.target.value)}>
-                <option value="">── 選択 ──</option>
-                ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
-              </select>
-            </div>
-          </section>
-        `}
+        <${TsutsumiReminder}
+          items=${pendingTsutsumi}
+          members=${members}
+          operatorId=${operatorId}
+          onOperatorChange=${updateOperator}
+          onClose=${(opId) => operatorId
+            ? handleCloseTsutsumi(opId)
+            : (flash('「あなた」を選んでください'), Promise.resolve())} />
 
         ${actionMsg && html`<div class="duty-flash">${actionMsg}</div>`}
 
