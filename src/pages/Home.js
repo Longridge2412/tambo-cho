@@ -23,6 +23,7 @@ import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
 import { MeyasuCard } from '../components/MeyasuCard.js';
 import { TsutsumiReminder } from '../components/TsutsumiReminder.js';
+import { GddSection } from '../components/GddSection.js';
 import { BottomNav } from '../components/BottomNav.js';
 
 export function HomePage() {
@@ -208,36 +209,7 @@ export function HomePage() {
 
         <${MeyasuCard} phenology=${phenology} onSaveTransplant=${saveTransplant} />
 
-        <!-- 稲の暦(積算温度) — 独立カードで大きく -->
-        <section class="gdd-section">
-          <div class="gdd-section-title">稲 の 暦</div>
-          ${!phenology && !phenologyError && html`<div class="empty-note">気温データを読み込み中…</div>`}
-          ${phenologyError && html`<div class="empty-note">気温データの取得に失敗しました</div>`}
-          ${phenology && phenology.map(r => html`
-            <div class="gdd-bigcard" key=${r.paddy_key}>
-              <div class="gdd-bigcard-head">
-                <span class="gdd-bigcard-name">${r.paddy_name}</span>
-                ${r.progress && html`<span class="gdd-bigcard-days">田植え ${r.progress.days}日目</span>`}
-              </div>
-              ${r.progress
-                ? html`
-                  <div class="gdd-bigcard-figure">${r.progress.gdd}<span class="gdd-bigcard-unit">°C·日</span></div>
-                  <div class="gdd-bigcard-bar"><div class="gdd-bigcard-bar-fill" style=${`width:${r.progress.pct}%`}></div></div>
-                  <div class="gdd-bigcard-meta">
-                    <span>目標 ${r.progress.target}°C·日</span>
-                    ${r.progress.predicted_date && html`
-                      <span class="gdd-bigcard-pred">
-                        ${r.progress.phase === 'transplant_to_heading' ? '出穂見込み' : '刈取り適期'}
-                        ${ymdToMd(r.progress.predicted_date)}ごろ
-                      </span>
-                    `}
-                  </div>
-                `
-                : html`<div class="gdd-bigcard-empty">田植え日が未設定</div>`
-              }
-            </div>
-          `)}
-        </section>
+        <${GddSection} phenology=${phenology} error=${phenologyError} />
 
         <!-- 堤の未完了リマインダー(該当時のみ・インラインで閉められる) -->
         <${TsutsumiReminder}
@@ -304,9 +276,3 @@ function TargetVisual({ target }) {
   `;
 }
 
-function ymdToMd(ymd) {
-  if (!ymd) return '';
-  const d = new Date(ymd + 'T00:00:00');
-  if (isNaN(d.getTime())) return ymd;
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
