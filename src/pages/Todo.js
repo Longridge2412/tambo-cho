@@ -99,6 +99,11 @@ export function TodoPage() {
   };
 
   const handleComplete = async (todo_id) => {
+    if (!todo_id) {
+      const keys = todos[0] ? Object.keys(todos[0]).join(', ') : '(空)';
+      setError('完了処理失敗:Todo の ID が読めません。todos シートの1行目の列名を確認してください(期待: todo_id)。現状のキー: ' + keys);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -113,6 +118,7 @@ export function TodoPage() {
   };
 
   const handleReopen = async (todo_id) => {
+    if (!todo_id) { setError('戻す処理失敗:Todo の ID が読めません'); return; }
     setBusy(true);
     setError(null);
     try {
