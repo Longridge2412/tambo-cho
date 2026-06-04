@@ -21,7 +21,7 @@ export function GddSection({ phenology, error }) {
     <section class="gdd-section">
       <div class="gdd-section-title">稲 の 暦</div>
       ${!phenology && !error && html`<div class="empty-note">気温データを読み込み中…</div>`}
-      ${error && html`<div class="empty-note">気温データの取得に失敗しました</div>`}
+      ${error && html`<div class="empty-note">気温データ取得失敗:${error}</div>`}
       ${phenology && phenology.map(r => html`
         <div class="gdd-bigcard" key=${r.paddy_key}>
           <div class="gdd-bigcard-head">

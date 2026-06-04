@@ -59,15 +59,31 @@ export function HomePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      let rows;
       try {
-        const rows = await api.listPaddyPhenology();
-        const withProgress = await Promise.all(rows.map(async (r) => ({
-          ...r,
-          progress: r.transplant_date ? await getPaddyProgress(r.transplant_date, r.heading_date) : null
-        })));
-        if (!cancelled) setPhenology(withProgress);
+        rows = await api.listPaddyPhenology();
       } catch (err) {
-        if (!cancelled) setPhenologyError(err.message);
+        if (!cancelled) setPhenologyError('paddy_phenology 読込失敗: ' + err.message);
+        return;
+      }
+      // 田んぼごとに progress を取得(片方失敗しても他は出す)
+      const withProgress = [];
+      let lastErr = null;
+      for (const r of rows) {
+        let progress = null;
+        if (r.transplant_date) {
+          try {
+            progress = await getPaddyProgress(r.transplant_date, r.heading_date);
+          } catch (err) {
+            console.warn('getPaddyProgress failed for', r.paddy_key, err);
+            lastErr = err.message;
+          }
+        }
+        withProgress.push({ ...r, progress });
+      }
+      if (!cancelled) {
+        setPhenology(withProgress);
+        if (lastErr) setPhenologyError('一部の積算温度取得に失敗: ' + lastErr);
       }
     })();
     return () => { cancelled = true; };
