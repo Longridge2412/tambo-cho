@@ -15,7 +15,15 @@ function readSheet(sheetName) {
 
 function rowToObject(headers, row) {
   const obj = {};
-  headers.forEach((h, i) => { obj[h] = row[i]; });
+  headers.forEach((h, i) => {
+    // ヘッダの揺れ(前後空白・ノーブレークスペース\u00a0・ゼロ幅文字)を吸収して
+    // クリーンなキーを obj に登録する
+    const key = String(h == null ? '' : h)
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')  // ゼロ幅
+      .replace(/\u00A0/g, ' ')                   // ノーブレークスペース → 通常空白
+      .trim();                                    // 前後空白除去
+    if (key) obj[key] = row[i];
+  });
   return obj;
 }
 
