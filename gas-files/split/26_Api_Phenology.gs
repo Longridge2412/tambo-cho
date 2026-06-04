@@ -18,7 +18,7 @@ function apiListPaddyPhenology() {
 function apiUpdatePaddyPhenology(payload) {
   if (!payload.paddy_key) throw new Error('paddy_key is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('paddy_phenology');
+  const sheet = _findSheet('paddy_phenology');
   if (!sheet) throw new Error('paddy_phenology シートがありません');
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(h => String(h == null ? '' : h)

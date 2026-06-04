@@ -7,7 +7,7 @@ function apiAddNote(payload) {
     throw new Error('content または photo_data_url が必要です');
   }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.NOTES);
+  const sheet = _findSheet(SHEET_NAMES.NOTES);
   const note_id = generateId('n', sheet);
   const now = new Date().toISOString();
 
@@ -53,7 +53,7 @@ function apiUpdateNote(payload) {
   if (!payload.note_id) throw new Error('note_id is required');
   // 本文だけは特別:updated_at も同時に更新
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.NOTES);
+  const sheet = _findSheet(SHEET_NAMES.NOTES);
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   const idxId = headers.indexOf('note_id');

@@ -21,7 +21,7 @@ function apiListTodos() {
 function apiAddTodo(payload) {
   if (!payload.content) throw new Error('content is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('todos');
+  const sheet = _findSheet('todos');
   if (!sheet) throw new Error('todos シートがありません');
   const todo_id = generateId('t', sheet);
   const created_at = new Date().toISOString();
@@ -46,7 +46,7 @@ function apiAddTodo(payload) {
 function apiUpdateTodo(payload) {
   if (!payload.todo_id) throw new Error('todo_id is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('todos');
+  const sheet = _findSheet('todos');
   if (!sheet) throw new Error('todos シートが見つかりません');
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
@@ -71,7 +71,7 @@ function apiUpdateTodo(payload) {
 function apiCompleteTodo(payload) {
   if (!payload.todo_id) throw new Error('todo_id is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('todos');
+  const sheet = _findSheet('todos');
   if (!sheet) throw new Error('todos シートが見つかりません');
   const values = sheet.getDataRange().getValues();
   const headers = values[0];

@@ -17,7 +17,7 @@ function apiPing() {
 function apiAddMember(payload) {
   if (!payload.display_name) throw new Error('display_name is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+  const sheet = _findSheet(SHEET_NAMES.MEMBERS);
   const member_id = generateId('m', sheet);
   const joined_at = new Date().toISOString();
   sheet.appendRow([member_id, payload.display_name, joined_at]);

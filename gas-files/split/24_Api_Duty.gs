@@ -20,7 +20,7 @@ function apiUpdateDutyMaster(payload) {
   if (!payload.day_of_week) throw new Error('day_of_week is required');
   if (!payload.slot) throw new Error('slot is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.DUTY_MASTER);
+  const sheet = _findSheet(SHEET_NAMES.DUTY_MASTER);
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   const idxDow = headers.indexOf('day_of_week');
@@ -101,7 +101,7 @@ function apiUpdateDutyWeek(payload) {
   if (!payload.target_date) throw new Error('target_date is required');
   if (!payload.slot) throw new Error('slot is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.DUTY_WEEK);
+  const sheet = _findSheet(SHEET_NAMES.DUTY_WEEK);
   const now = new Date().toISOString();
   const targetDate = String(payload.target_date);
   const slot = Number(payload.slot);
@@ -165,7 +165,7 @@ function apiAddDutySwap(payload) {
   if (!payload.original_member_id) throw new Error('original_member_id is required');
   if (!payload.target_date) throw new Error('target_date is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.DUTY_SWAPS);
+  const sheet = _findSheet(SHEET_NAMES.DUTY_SWAPS);
   const swap_id = generateId('s', sheet);
   const now = new Date().toISOString();
   sheet.appendRow([
@@ -188,7 +188,7 @@ function apiAcceptDutySwap(payload) {
   if (!payload.swap_id) throw new Error('swap_id is required');
   if (!payload.substitute_member_id) throw new Error('substitute_member_id is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.DUTY_SWAPS);
+  const sheet = _findSheet(SHEET_NAMES.DUTY_SWAPS);
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   const idxId = headers.indexOf('swap_id');

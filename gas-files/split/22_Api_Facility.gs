@@ -6,7 +6,7 @@ function apiAddFacilityOp(payload) {
   if (!payload.member_id) throw new Error('member_id is required');
   if (!payload.target) throw new Error('target is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.FACILITY_OPS);
+  const sheet = _findSheet(SHEET_NAMES.FACILITY_OPS);
   const op_id = generateId('f', sheet);
   const operated_at = payload.operated_at || new Date().toISOString();
 

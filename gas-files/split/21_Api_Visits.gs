@@ -5,7 +5,7 @@
 function apiAddVisit(payload) {
   if (!payload.member_id) throw new Error('member_id is required');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.VISITS);
+  const sheet = _findSheet(SHEET_NAMES.VISITS);
   const visit_id = generateId('v', sheet);
   const visited_at = payload.visited_at || new Date().toISOString();
 
