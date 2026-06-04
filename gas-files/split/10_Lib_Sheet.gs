@@ -42,13 +42,14 @@ function _deleteByIdInSheet(sheetName, idCol, idValue) {
   const headers = values[0];
   const idxId = headers.indexOf(idCol);
   if (idxId < 0) throw new Error('header ' + idCol + ' not found');
+  const target = String(idValue).trim();
   for (let r = 1; r < values.length; r++) {
-    if (values[r][idxId] === idValue) {
+    if (String(values[r][idxId] == null ? '' : values[r][idxId]).trim() === target) {
       sheet.deleteRow(r + 1);
       return { id: idValue, deleted: true };
     }
   }
-  throw new Error(idCol + ' not found: ' + idValue);
+  throw new Error(idCol + ' not found: ' + target);
 }
 
 // ─────────────────────────────────────────
@@ -66,8 +67,9 @@ function _updateByIdInSheet(sheetName, idCol, idValue, payload, allowedFields) {
   if (idxId < 0) throw new Error('header ' + idCol + ' not found');
   const colMap = {};
   headers.forEach(function (h, i) { colMap[h] = i; });
+  const target = String(idValue).trim();
   for (let r = 1; r < values.length; r++) {
-    if (values[r][idxId] === idValue) {
+    if (String(values[r][idxId] == null ? '' : values[r][idxId]).trim() === target) {
       allowedFields.forEach(function (k) {
         if (payload[k] !== undefined && colMap[k] !== undefined) {
           sheet.getRange(r + 1, colMap[k] + 1).setValue(payload[k]);
@@ -76,5 +78,5 @@ function _updateByIdInSheet(sheetName, idCol, idValue, payload, allowedFields) {
       return { id: idValue, updated: true };
     }
   }
-  throw new Error(idCol + ' not found: ' + idValue);
+  throw new Error(idCol + ' not found: ' + target);
 }
