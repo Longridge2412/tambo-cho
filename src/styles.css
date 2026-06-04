@@ -2867,3 +2867,52 @@ html, body {
   color: var(--sumi-fade);
   padding: 6px 0;
 }
+
+/* Todo の編集ボタン + 完了済みクリックで戻す + 編集フォーム */
+.todo-edit-btn {
+  background: transparent;
+  border: 1px solid var(--washi-edge);
+  color: var(--sumi-fade);
+  font-family: 'Klee One', serif;
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+.todo-edit-btn:hover {
+  color: var(--koke-deep);
+  border-color: var(--koke);
+  background: rgba(107,122,58,0.05);
+}
+.todo-row.done .todo-check {
+  cursor: pointer;
+}
+.todo-row.done .todo-check:hover:not(:disabled) {
+  background: var(--washi-edge);
+  color: var(--sumi);
+}
+.todo-row.editing {
+  padding: 12px 14px;
+  background: var(--washi);
+  border: 1px solid var(--koke);
+  box-shadow: 0 0 0 1px var(--koke) inset;
+}
+.todo-edit-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.todo-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.todo-edit-actions .btn-primary,
+.todo-edit-actions .btn-ghost {
+  width: auto;
+  padding: 7px 16px;
+  font-size: 12px;
+}
