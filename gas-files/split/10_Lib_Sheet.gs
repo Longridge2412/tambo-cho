@@ -2,10 +2,36 @@
  * Lib_Sheet.gs — シート読み書きの共通関数
  */
 
-function readSheet(sheetName) {
+/**
+ * シートタブ名で検索(余白・ノーブレークスペース・ゼロ幅文字を吸収)。
+ *   厳密一致 → trim 一致 の順で探す。見つからなければ null。
+ */
+function _findSheet(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error(`Sheet not found: ${sheetName}`);
+  let sheet = ss.getSheetByName(sheetName);
+  if (sheet) return sheet;
+  const target = String(sheetName)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .trim();
+  const sheets = ss.getSheets();
+  for (let i = 0; i < sheets.length; i++) {
+    const nm = String(sheets[i].getName())
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\u00A0/g, ' ')
+      .trim();
+    if (nm === target) return sheets[i];
+  }
+  return null;
+}
+
+function readSheet(sheetName) {
+  const sheet = _findSheet(sheetName);
+  if (!sheet) {
+    const all = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+      .map(s => '「' + s.getName() + '」').join(', ');
+    throw new Error('Sheet not found: ' + sheetName + ' / 既存シート: ' + all);
+  }
   const range = sheet.getDataRange();
   const values = range.getValues();
   if (values.length <= 1) return [];
