@@ -25,15 +25,7 @@ class ErrorBoundary extends Component {
     return { error: error };
   }
   componentDidCatch(error, info) {
-    if (window.__debugShowErr) {
-      window.__debugShowErr('[ReactErr] ' + (error && (error.message || error)));
-      if (error && error.stack) {
-        window.__debugShowErr(error.stack.split('\n').slice(0, 8).join('\n'));
-      }
-      if (info && info.componentStack) {
-        window.__debugShowErr('Component:' + info.componentStack.split('\n').slice(0, 8).join('\n'));
-      }
-    }
+    console.error('[ReactErr]', error, info && info.componentStack);
   }
   render() {
     if (this.state.error) {

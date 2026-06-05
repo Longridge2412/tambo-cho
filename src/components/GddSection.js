@@ -1,6 +1,8 @@
 /**
  * 稲の暦(積算温度)セクション(独立コンポーネント)
  *
+ * 三畝・一反は田植え日が同じ前提なので、1枚のカードで両方を兼ねる。
+ *
  * props:
  *   - phenology: api.listPaddyPhenology() の結果配列 + progress
  *   - error: 取得エラー時の文字列
@@ -17,19 +19,19 @@ function ymdToMd(ymd) {
 }
 
 export function GddSection({ phenology, error }) {
+  const r = (phenology && phenology.length > 0) ? phenology[0] : null;
   return html`
     <section class="gdd-section">
       <div class="gdd-section-title">稲 の 暦</div>
       ${!phenology && !error && html`<div class="empty-note">気温データを読み込み中…</div>`}
       ${error && html`<div class="empty-note">気温データ取得失敗:${error}</div>`}
-      ${phenology && phenology.map(r => html`
-        <div class="gdd-bigcard" key=${r.paddy_key}>
-          <div class="gdd-bigcard-head">
-            <span class="gdd-bigcard-name">${r.paddy_name}</span>
-            ${r.progress && html`<span class="gdd-bigcard-days">田植え ${r.progress.days}日目</span>`}
-          </div>
+      ${r && html`
+        <div class="gdd-bigcard">
           ${r.progress
             ? html`
+              <div class="gdd-bigcard-head">
+                <span class="gdd-bigcard-days">田植え ${r.progress.days}日目</span>
+              </div>
               <div class="gdd-bigcard-figure">${r.progress.gdd}<span class="gdd-bigcard-unit">°C·日</span></div>
               <div class="gdd-bigcard-bar"><div class=${`gdd-bigcard-bar-fill pct-${Math.round(r.progress.pct || 0)}`}></div></div>
               <div class="gdd-bigcard-meta">
@@ -45,7 +47,7 @@ export function GddSection({ phenology, error }) {
             : html`<div class="gdd-bigcard-empty">田植え日が未設定</div>`
           }
         </div>
-      `)}
+      `}
     </section>
   `;
 }
