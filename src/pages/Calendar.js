@@ -14,7 +14,6 @@ import { formatShort, evalSymbol, cardColorClass } from '../utils.js';
 import { avatarFor } from '../data/member_avatars.js';
 import { Header } from '../components/Header.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
-import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh.js';
 import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
 import { BottomNav } from '../components/BottomNav.js';
@@ -59,19 +58,6 @@ export function CalendarPage() {
     }).catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
-  // 画面復帰時の自動再取得
-  useVisibilityRefresh(async () => {
-    try {
-      const [v, o, n] = await Promise.all([
-        api.listVisits({ limit: 200 }),
-        api.listFacilityOps({ limit: 200 }),
-        api.listNotes()
-      ]);
-      setVisits(v); setOps(o); setNotes(n);
-    } catch (err) {
-      console.warn('calendar refresh failed:', err);
-    }
-  });
 
   const flash = (text) => {
     setActionMsg(text);

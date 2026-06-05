@@ -14,7 +14,6 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
-import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh.js';
 import { clearObservedCache } from '../services/phenology.js';
 import { PADDIES } from '../data/paddies.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
@@ -45,7 +44,7 @@ export function HomePage() {
   const [lightboxUrl, setLightboxUrl] = useState('');
 
   useEffect(() => {
-    Promise.all([
+    const load = () => Promise.all([
       api.getTodayContext(),
       api.listVisits({ limit: 50 }),
       api.listFacilityOps({ limit: 50 }),
@@ -55,8 +54,20 @@ export function HomePage() {
       .then(([c, v, o, n, m]) => {
         setCtx(c); setVisits(v); setOps(o); setNotes(n); setMembers(m);
         setLoading(false);
-      })
-      .catch(err => { setError(err.message); setLoading(false); });
+      });
+    load().catch(err => { setError(err.message); setLoading(false); });
+
+    // 画面が再表示されたら 60 秒スロットルで自動再取得
+    let lastVisRefresh = Date.now();
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastVisRefresh < 60000) return;
+      lastVisRefresh = now;
+      load().catch(err => console.warn('home revisit refresh failed:', err));
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
   useEffect(() => {
@@ -84,33 +95,7 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // 画面が再表示されたら自動再取得(60秒以内なら何もしない)
-  useVisibilityRefresh(async () => {
-    try {
-      const [c, v, o, n, m] = await Promise.all([
-        api.getTodayContext(),
-        api.listVisits({ limit: 50 }),
-        api.listFacilityOps({ limit: 50 }),
-        api.listNotes(),
-        api.listMembers()
-      ]);
-      setCtx(c); setVisits(v); setOps(o); setNotes(n); setMembers(m);
-      // 気温キャッシュも捨てて、稲の暦を新鮮にする
-      clearObservedCache();
-      const withProgress = [];
-      for (const r of PADDIES) {
-        let progress = null;
-        if (r.transplant_date) {
-          try { progress = await getPaddyProgress(r.transplant_date, r.heading_date); }
-          catch (err) { console.warn('refresh GDD failed:', err); }
-        }
-        withProgress.push({ ...r, progress });
-      }
-      setPhenology(withProgress);
-    } catch (err) {
-      console.warn('home refresh failed:', err);
-    }
-  });
+
 
 
   const updateOperator = (id) => {
