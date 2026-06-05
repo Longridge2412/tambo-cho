@@ -31,7 +31,7 @@ export function GddSection({ phenology, error }) {
           ${r.progress
             ? html`
               <div class="gdd-bigcard-figure">${r.progress.gdd}<span class="gdd-bigcard-unit">°C·日</span></div>
-              <div class="gdd-bigcard-bar"><div class="gdd-bigcard-bar-fill" style=${`width:${r.progress.pct}%`}></div></div>
+              <div class="gdd-bigcard-bar"><div class="gdd-bigcard-bar-fill" style=${{width: r.progress.pct + '%'}}></div></div>
               <div class="gdd-bigcard-meta">
                 <span>目標 ${r.progress.target}°C·日</span>
                 ${r.progress.predicted_date && html`
