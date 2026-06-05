@@ -147,5 +147,29 @@
       });
     }
   </script>
+  <script>
+    // ── デバッグ用エラー可視化(画面上に赤バーで表示) ──
+    (function () {
+      function showErr(msg) {
+        var box = document.getElementById('debugErr');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debugErr';
+          box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#b04a3e;color:#fff;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:11px;line-height:1.4;white-space:pre-wrap;max-height:60vh;overflow:auto;box-shadow:0 4px 14px rgba(0,0,0,0.3)';
+          document.body.appendChild(box);
+        }
+        box.textContent += msg + '\n';
+      }
+      window.__debugShowErr = showErr;
+      window.addEventListener('error', function (e) {
+        showErr('[エラー] ' + (e.message || '') + '\n  at ' + (e.filename || '?') + ':' + (e.lineno || '?') + ':' + (e.colno || '?'));
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var msg = e.reason && (e.reason.stack || e.reason.message || e.reason) || '';
+        showErr('[未処理Promise] ' + msg);
+      });
+    })();
+  </script>
+
 </body>
 </html>
