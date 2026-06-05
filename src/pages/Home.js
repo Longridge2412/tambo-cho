@@ -14,6 +14,8 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh.js';
+import { clearObservedCache } from '../services/phenology.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
 import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils.js';
 import { Header } from '../components/Header.js';
@@ -88,6 +90,35 @@ export function HomePage() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // 画面が再表示されたら自動再取得(60秒以内なら何もしない)
+  useVisibilityRefresh(async () => {
+    try {
+      const [c, v, o, n, m] = await Promise.all([
+        api.getTodayContext(),
+        api.listVisits({ limit: 50 }),
+        api.listFacilityOps({ limit: 50 }),
+        api.listNotes(),
+        api.listMembers()
+      ]);
+      setCtx(c); setVisits(v); setOps(o); setNotes(n); setMembers(m);
+      // 気温キャッシュも捨てて、稲の暦を新鮮にする
+      clearObservedCache();
+      const rows = await api.listPaddyPhenology();
+      const withProgress = [];
+      for (const r of rows) {
+        let progress = null;
+        if (r.transplant_date) {
+          try { progress = await getPaddyProgress(r.transplant_date, r.heading_date); }
+          catch (err) { console.warn('refresh GDD failed:', err); }
+        }
+        withProgress.push({ ...r, progress });
+      }
+      setPhenology(withProgress);
+    } catch (err) {
+      console.warn('home refresh failed:', err);
+    }
+  });
 
   const saveTransplant = async (edits) => {
     try {

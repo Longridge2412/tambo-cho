@@ -11,6 +11,11 @@ let _cache = null;
 let _cacheAt = 0;
 const TTL_MS = 30 * 60 * 1000;  // 30分
 
+export function clearWeatherCache() {
+  _cache = null;
+  _cacheAt = 0;
+}
+
 /** WMO weather code → 簡易タイプ */
 export function weatherType(code) {
   if (code == null) return 'unknown';

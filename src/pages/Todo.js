@@ -14,6 +14,7 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh.js';
 
 function ymdToday() {
   const d = new Date();
@@ -76,6 +77,16 @@ export function TodoPage() {
       })
       .catch(err => { setError(err.message); setLoading(false); setMembersLoading(false); });
   }, []);
+
+  // 画面復帰時の自動再取得
+  useVisibilityRefresh(async () => {
+    try {
+      const t = await api.listTodos();
+      setTodos(t);
+    } catch (err) {
+      console.warn('todo refresh failed:', err);
+    }
+  });
 
   const handleAdd = async () => {
     if (!newText.trim()) { setError('内容を入れてください'); return; }

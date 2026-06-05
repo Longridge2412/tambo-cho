@@ -50,6 +50,12 @@ let _seriesCache = null;
 let _seriesCacheAt = 0;
 const CACHE_TTL_MS = 60 * 60 * 1000;  // 1時間
 
+/** 画面復帰時などに気温キャッシュを破棄して次回再取得させる */
+export function clearObservedCache() {
+  _seriesCache = null;
+  _seriesCacheAt = 0;
+}
+
 async function fetchJson(url) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);
