@@ -16,6 +16,7 @@ import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh.js';
 import { clearObservedCache } from '../services/phenology.js';
+import { PADDIES } from '../data/paddies.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
 import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils.js';
 import { Header } from '../components/Header.js';
@@ -61,17 +62,9 @@ export function HomePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let rows;
-      try {
-        rows = await api.listPaddyPhenology();
-      } catch (err) {
-        if (!cancelled) setPhenologyError('paddy_phenology 読込失敗: ' + err.message);
-        return;
-      }
-      // 田んぼごとに progress を取得(片方失敗しても他は出す)
       const withProgress = [];
       let lastErr = null;
-      for (const r of rows) {
+      for (const r of PADDIES) {
         let progress = null;
         if (r.transplant_date) {
           try {
@@ -104,9 +97,8 @@ export function HomePage() {
       setCtx(c); setVisits(v); setOps(o); setNotes(n); setMembers(m);
       // 気温キャッシュも捨てて、稲の暦を新鮮にする
       clearObservedCache();
-      const rows = await api.listPaddyPhenology();
       const withProgress = [];
-      for (const r of rows) {
+      for (const r of PADDIES) {
         let progress = null;
         if (r.transplant_date) {
           try { progress = await getPaddyProgress(r.transplant_date, r.heading_date); }
@@ -120,26 +112,6 @@ export function HomePage() {
     }
   });
 
-  const saveTransplant = async (edits) => {
-    try {
-      for (const p of (phenology || [])) {
-        const newVal = edits[p.paddy_key] || '';
-        if (newVal !== (p.transplant_date || '')) {
-          await api.updatePaddyPhenology({ paddy_key: p.paddy_key, transplant_date: newVal });
-        }
-      }
-      const rows = await api.listPaddyPhenology();
-      const withProgress = await Promise.all(rows.map(async (r) => ({
-        ...r,
-        progress: r.transplant_date ? await getPaddyProgress(r.transplant_date, r.heading_date) : null
-      })));
-      setPhenology(withProgress);
-      flash('田植え日を更新しました');
-    } catch (err) {
-      flash(`更新失敗: ${err.message}`);
-      throw err;
-    }
-  };
 
   const updateOperator = (id) => {
     setOperatorId(id);
@@ -254,7 +226,7 @@ export function HomePage() {
 
       <main class="screen-body home-v2">
 
-        <${MeyasuCard} phenology=${phenology} onSaveTransplant=${saveTransplant} />
+        <${MeyasuCard} phenology=${phenology} />
 
         <${GddSection} phenology=${phenology} error=${phenologyError} />
 
