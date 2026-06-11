@@ -16,9 +16,3 @@ export const IMAGE_COMPRESSION = {
 };
 
 // 朝/夕の境界(時間で判定)
-export const TIME_PERIODS = {
-  MORNING_START: 5,    // 5時以降を朝とみなす
-  MORNING_END: 11,     // 11時前まで朝
-  EVENING_START: 16,   // 16時以降を夕
-  EVENING_END: 21      // 21時前まで夕
-};

@@ -3,9 +3,7 @@
  *
  * 構成:
  *   - 上部固定:今の目安(目標水位 + 稲の暦/積算温度)
- *   - 下部:投稿フィード(見回り + 共用設備 + 覚書 を時系列マージ)
- *
- * Phase A の中心画面。当番表示はカレンダータブに移譲。
+ *   - 下部:投稿フィード(見回り + 共用設備 + 覚書 を batch_id で1カードに統合)
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -14,13 +12,10 @@ const html = htm.bind(h);
 import { api } from '../api.js';
 import { getPaddyProgress } from '../services/phenology.js';
 import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
-import { clearObservedCache } from '../services/phenology.js';
+import { buildFeedGroups, groupPartLabels } from '../services/feed.js';
 import { PADDIES } from '../data/paddies.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
-import { formatShort, formatElapsed, evalSymbol, cardColorClass } from '../utils.js';
-import { Header } from '../components/Header.js';
 import { HomeHeader } from '../components/HomeHeader.js';
-import { avatarFor } from '../data/member_avatars.js';
 import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
 import { MeyasuCard } from '../components/MeyasuCard.js';
@@ -95,9 +90,6 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-
-
-
   const updateOperator = (id) => {
     setOperatorId(id);
     setCurrentUser(id);
@@ -129,19 +121,26 @@ export function HomePage() {
     }
   };
 
-  const handleEditStart = (item) => setEditingKey(`${item.type}:${item.id}`);
+  const handleEditStart = (item) => setEditingKey(item.key);
   const handleEditCancel = () => setEditingKey(null);
+
+  // グループ単位の保存(含まれる部分だけ順に更新)
   const handleEditSave = async (item, updates) => {
     try {
-      if (item.type === 'visit') {
-        await api.updateVisit({ visit_id: item.id, ...updates });
-        setVisits(visits.map(v => v.visit_id === item.id ? { ...v, ...updates } : v));
-      } else if (item.type === 'facility') {
-        await api.updateFacilityOp({ op_id: item.id, ...updates });
-        setOps(ops.map(o => o.op_id === item.id ? { ...o, ...updates } : o));
-      } else if (item.type === 'note') {
-        await api.updateNote({ note_id: item.id, ...updates });
-        setNotes(notes.map(n => n.note_id === item.id ? { ...n, ...updates } : n));
+      if (updates.visit) {
+        const id = item.parts.visit.visit_id;
+        await api.updateVisit({ visit_id: id, ...updates.visit });
+        setVisits(prev => prev.map(v => v.visit_id === id ? { ...v, ...updates.visit } : v));
+      }
+      if (updates.facility) {
+        const id = item.parts.facility.op_id;
+        await api.updateFacilityOp({ op_id: id, ...updates.facility });
+        setOps(prev => prev.map(o => o.op_id === id ? { ...o, ...updates.facility } : o));
+      }
+      if (updates.note) {
+        const id = item.parts.note.note_id;
+        await api.updateNote({ note_id: id, ...updates.note });
+        setNotes(prev => prev.map(n => n.note_id === id ? { ...n, ...updates.note } : n));
       }
       setEditingKey(null);
       flash('保存しました');
@@ -150,18 +149,25 @@ export function HomePage() {
     }
   };
 
+  // グループ単位の削除(まとめて消す)
   const handleDeletePost = async (item) => {
-    if (!confirm('この投稿を削除しますか?\n取り消せません。')) return;
+    const labels = groupPartLabels(item).join(' + ');
+    if (!confirm(`この投稿(${labels})を削除しますか?\n取り消せません。`)) return;
     try {
-      if (item.type === 'visit') {
-        await api.deleteVisit({ visit_id: item.id });
-        setVisits(visits.filter(v => v.visit_id !== item.id));
-      } else if (item.type === 'facility') {
-        await api.deleteFacilityOp({ op_id: item.id });
-        setOps(ops.filter(o => o.op_id !== item.id));
-      } else if (item.type === 'note') {
-        await api.deleteNote({ note_id: item.id });
-        setNotes(notes.filter(n => n.note_id !== item.id));
+      if (item.parts.visit) {
+        const id = item.parts.visit.visit_id;
+        await api.deleteVisit({ visit_id: id });
+        setVisits(prev => prev.filter(v => v.visit_id !== id));
+      }
+      if (item.parts.facility) {
+        const id = item.parts.facility.op_id;
+        await api.deleteFacilityOp({ op_id: id });
+        setOps(prev => prev.filter(o => o.op_id !== id));
+      }
+      if (item.parts.note) {
+        const id = item.parts.note.note_id;
+        await api.deleteNote({ note_id: id });
+        setNotes(prev => prev.filter(n => n.note_id !== id));
       }
       // 開けっぱリマインダーも変わる可能性があるので ctx 再取得
       const c = await api.getTodayContext();
@@ -172,7 +178,7 @@ export function HomePage() {
     }
   };
 
-    if (loading) return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
+  if (loading) return html`<div class="loading"><div class="loading-text">読み込み中</div></div>`;
   if (error) return html`
     <div class="error-screen">
       <div class="error-title">うまく読み込めませんでした</div>
@@ -181,29 +187,14 @@ export function HomePage() {
     </div>
   `;
 
-  const target = ctx.target;
   const pendingTsutsumi = ctx.pending_tsutsumi || [];
-
 
   // メンバーID → 表示名
   const memberMap = {};
   members.forEach(m => { memberMap[m.member_id] = m.display_name; });
 
-  // 統合フィード(visits + facility_ops + notes)
-  const feed = [];
-  visits.forEach(v => v.visited_at && feed.push({
-    type: 'visit', id: v.visit_id, ts: v.visited_at,
-    by: memberMap[v.member_id] || '?', data: v
-  }));
-  ops.forEach(o => o.operated_at && feed.push({
-    type: 'facility', id: o.op_id, ts: o.operated_at,
-    by: memberMap[o.member_id] || '?', data: o
-  }));
-  notes.forEach(n => n.created_at && feed.push({
-    type: 'note', id: n.note_id, ts: n.created_at,
-    by: memberMap[n.created_by] || '?', data: n
-  }));
-  feed.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+  // 統合フィード(batch_id で1カードに統合)
+  const feed = buildFeedGroups({ visits, ops, notes, memberMap });
 
   return html`
     <div class="screen">
@@ -232,12 +223,11 @@ export function HomePage() {
           ${feed.length === 0
             ? html`<div class="empty-note">まだ投稿がありません</div>`
             : feed.map(item => {
-                const k = item.type + ':' + item.id;
-                if (editingKey === k) {
-                  return html`<${EditPost} key=${k} item=${item}
+                if (editingKey === item.key) {
+                  return html`<${EditPost} key=${item.key} item=${item}
                     onSave=${handleEditSave} onCancel=${handleEditCancel} />`;
                 }
-                return html`<${PostCard} key=${k} item=${item}
+                return html`<${PostCard} key=${item.key} item=${item}
                   onEdit=${handleEditStart} onDelete=${handleDeletePost}
                   onPhotoClick=${(url) => setLightboxUrl(toLightboxUrl(url))} />`;
               })
@@ -251,32 +241,3 @@ export function HomePage() {
     </div>
   `;
 }
-
-// ─────────────────────────────────────
-// 投稿カード(共通)
-// ─────────────────────────────────────
-
-// 目標水位のビジュアル(SVG)
-function TargetVisual({ target }) {
-  if (!target) return html`<div class="target-empty">─</div>`;
-  const label = target.target_label || '';
-  const isDry = label.includes('中干し') || label.includes('乾');
-  const isLow = label.includes('浅め') || label.includes('低');
-  const waterTop = isDry ? 50 : (isLow ? 38 : 32);
-  return html`
-    <svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="50" width="100" height="10" fill="#8b6f47" opacity="0.3"/>
-      ${!isDry && html`
-        <rect x="0" y=${waterTop} width="100" height=${50 - waterTop} fill="#7a9aa0" opacity="0.4"/>
-        <line x1="0" y1=${waterTop} x2="100" y2=${waterTop} stroke="#7a9aa0" stroke-width="1" stroke-dasharray="3,2"/>
-      `}
-      <g stroke="#6b7a3a" stroke-width="1.5" fill="none">
-        <path d="M 15 50 L 15 10 M 15 18 L 12 15 M 15 22 L 18 19"/>
-        <path d="M 38 50 L 38 8 M 38 16 L 35 13 M 38 20 L 41 17"/>
-        <path d="M 62 50 L 62 12 M 62 18 L 59 15 M 62 22 L 65 19"/>
-        <path d="M 85 50 L 85 10 M 85 18 L 82 15 M 85 22 L 88 19"/>
-      </g>
-    </svg>
-  `;
-}
-

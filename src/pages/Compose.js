@@ -2,12 +2,14 @@
  * 共有(投稿作成)画面 — #/compose
  *
  * 統合フォーム。すべての項目は任意。
- *   - 自由メモ
- *   - 水位(三畝/一反) + 写真2枚 + カイヌマ疎水 → 入っていれば addVisit
- *   - 堤の操作(対象/動作/理由) → 入っていれば addFacilityOp
- *   - いずれも無く自由メモだけ → addNote
- *   - 上記併用も可(複数APIを順に呼ぶ)
- *   - Todo追加 はPhase Bで実装。今はプレースホルダ表示。
+ *   - 自由メモ(+任意の写真)
+ *   - 水位(三畝/一反) + 写真2枚 + カイヌマ疎水
+ *   - 堤の操作(開けた/閉めた)
+ *   - Todo 追加
+ *
+ * 送信は GAS の addPost 1回にまとめる(従来は最大4回直列だった)。
+ * 作られたレコードには共通の batch_id が付き、ホームでは1カードに統合表示される。
+ * 途中失敗時は GAS が「どこまで保存されたか」をエラー文言で返す。
  */
 
 const { createElement: h, useState, useEffect } = React;
@@ -15,13 +17,16 @@ const html = htm.bind(h);
 
 import { api } from '../api.js';
 import { compressImageToDataUrl, buildComposeShareText, copyToClipboard } from '../utils.js';
+import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
+import { ToggleGroup } from '../components/ToggleGroup.js';
 
 export function ComposePage() {
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(true);
-  const [memberId, setMemberId] = useState('');
+  // 前回使った「あなた」を初期選択(堤リマインダーと同じ localStorage を共用)
+  const [memberId, setMemberId] = useState(getCurrentUser());
 
   const [memo, setMemo] = useState('');
   const [memoPhotoFile, setMemoPhotoFile] = useState(null);
@@ -53,6 +58,11 @@ export function ComposePage() {
       .catch(err => { setError(`メンバー取得失敗: ${err.message}`); setMembersLoading(false); });
   }, []);
 
+  const updateMember = (id) => {
+    setMemberId(id);
+    if (id) setCurrentUser(id);
+  };
+
   const handlePhoto = (field, e) => {
     const file = e.target.files[0];
     let setFile, setPrev;
@@ -79,84 +89,65 @@ export function ComposePage() {
     }
     setSubmitting(true);
     setError(null);
-    const created = [];
     try {
       const hasMemoPhoto = !!memoPhotoFile;
       const memoText = memo.trim();
       const visitFilled = hasVisit();
       const facilityFilled = hasFacility();
 
-      // メモは1か所だけに収める
-      //   写真あり → 覚書(必ず)
-      //   なし & 見回りあり → free_note
-      //   なし & 堤あり → reason
-      //   なし & どれもなし → 覚書(テキストのみ)
+      // メモは1か所だけに収める(ホームでは batch_id で1カードに見えるため、
+      // どこに入っても表示は同じ。データ上の置き場所のルール):
+      //   写真あり → 覚書 / 見回りあり → free_note / 堤のみ → reason / 単独 → 覚書
       let memoTarget = 'none';
-      if (hasMemoPhoto)             memoTarget = 'note';
+      if (hasMemoPhoto)                    memoTarget = 'note';
       else if (memoText && visitFilled)    memoTarget = 'visit';
       else if (memoText && facilityFilled) memoTarget = 'facility';
       else if (memoText)                   memoTarget = 'note';
 
-      // 保存したレコードを共有テキスト生成のために保持
+      // 一括送信ペイロードを組み立て
+      const payload = { member_id: memberId };
       let recVisit = null, recFacility = null, recNote = null, recTodo = null;
 
-      // 1) 見回り
       if (visitFilled) {
-        let p1 = null, p2 = null;
-        if (photoFile1) p1 = await compressImageToDataUrl(photoFile1);
-        if (photoFile2) p2 = await compressImageToDataUrl(photoFile2);
+        const p1 = photoFile1 ? await compressImageToDataUrl(photoFile1) : null;
+        const p2 = photoFile2 ? await compressImageToDataUrl(photoFile2) : null;
         const visitFreeNote = (memoTarget === 'visit') ? memoText : '';
-        await api.addVisit({
-          member_id: memberId,
+        payload.visit = {
           water_level_eval: eval1 || '',
           field2_eval: eval2 || '',
           stream_status: streamStatus || '',
           free_note: visitFreeNote,
           photo_data_url: p1,
           field2_photo_data_url: p2
-        });
-        created.push('見回り');
+        };
         recVisit = {
           water_level_eval: eval1 || '', field2_eval: eval2 || '',
           stream_status: streamStatus || '', free_note: visitFreeNote,
           photos: (p1 ? 1 : 0) + (p2 ? 1 : 0)
         };
       }
-      // 2) 堤の開け閉め
       if (facilityFilled) {
         const opReason = (memoTarget === 'facility') ? memoText : '';
-        await api.addFacilityOp({
-          member_id: memberId,
+        payload.facility = {
           target: '堤',
           action: opAction,
           reason: opReason,
           coordination_note: ''
-        });
-        created.push('堤の操作');
+        };
         recFacility = { action: opAction, reason: opReason };
       }
-      // 3) 覚書(memoTarget==='note' のとき)
       if (memoTarget === 'note') {
-        let mp = null;
-        if (memoPhotoFile) mp = await compressImageToDataUrl(memoPhotoFile);
-        await api.addNote({
-          created_by: memberId,
-          content: memoText,
-          photo_data_url: mp
-        });
-        created.push('覚書');
+        const mp = memoPhotoFile ? await compressImageToDataUrl(memoPhotoFile) : null;
+        payload.note = { content: memoText, photo_data_url: mp };
         recNote = { content: memoText, has_photo: !!mp };
       }
-      // 4) Todo 追加
       if (todoText.trim()) {
-        await api.addTodo({
-          content: todoText.trim(),
-          due_date: todoDue || '',
-          created_by: memberId
-        });
-        created.push('Todo');
+        payload.todo = { content: todoText.trim(), due_date: todoDue || '' };
         recTodo = { content: todoText.trim(), due_date: todoDue || '' };
       }
+
+      // 1回の POST でまとめて保存
+      const res = await api.addPost(payload);
 
       const memberName = members.find(m => m.member_id === memberId)?.display_name || '';
       const shareText = buildComposeShareText({
@@ -166,7 +157,7 @@ export function ComposePage() {
         note: recNote,
         todo: recTodo
       });
-      setSubmitted({ created, count: created.length, shareText, memberName });
+      setSubmitted({ created: res.created || [], shareText, memberName });
     } catch (err) {
       setError(`送信失敗: ${err.message}`);
     } finally {
@@ -185,12 +176,12 @@ export function ComposePage() {
       <main class="screen-body">
         <section class="form-section">
 
-          <!-- 名前(必須) -->
+          <!-- 名前(必須・前回の選択を記憶) -->
           <div class="form-group">
             <div class="f-label">名 前</div>
             <select class="f-input f-select" value=${memberId}
               disabled=${membersLoading}
-              onChange=${e => setMemberId(e.target.value)}>
+              onChange=${e => updateMember(e.target.value)}>
               <option value="">${membersLoading ? '読み込み中…' : '── 選択 ──'}</option>
               ${members.map(m => html`<option key=${m.member_id} value=${m.member_id}>${m.display_name}</option>`)}
             </select>
@@ -234,36 +225,18 @@ export function ComposePage() {
               ${photoBlock(1, '三 畝 の 田', photoPreview1, handlePhoto)}
               <div class="form-group">
                 <div class="f-label">水 位 (三畝)</div>
-                <div class="toggle-group">
-                  ${['高', '適', '低'].map(opt => html`
-                    <button key=${opt} type="button"
-                      class=${`toggle-btn ${eval1 === opt ? 'active' : ''}`}
-                      onClick=${() => setEval1(eval1 === opt ? '' : opt)}>${opt}</button>
-                  `)}
-                </div>
+                <${ToggleGroup} options=${['高', '適', '低']} value=${eval1} onChange=${setEval1} />
               </div>
 
               ${photoBlock(2, '一 反 の 田', photoPreview2, handlePhoto)}
               <div class="form-group">
                 <div class="f-label">水 位 (一反)</div>
-                <div class="toggle-group">
-                  ${['高', '適', '低'].map(opt => html`
-                    <button key=${opt} type="button"
-                      class=${`toggle-btn ${eval2 === opt ? 'active' : ''}`}
-                      onClick=${() => setEval2(eval2 === opt ? '' : opt)}>${opt}</button>
-                  `)}
-                </div>
+                <${ToggleGroup} options=${['高', '適', '低']} value=${eval2} onChange=${setEval2} />
               </div>
 
               <div class="form-group">
                 <div class="f-label">カ イ ヌ マ 疎 水</div>
-                <div class="toggle-group">
-                  ${['通常', '弱い', 'ほぼなし'].map(opt => html`
-                    <button key=${opt} type="button"
-                      class=${`toggle-btn ${streamStatus === opt ? 'active' : ''}`}
-                      onClick=${() => setStreamStatus(streamStatus === opt ? '' : opt)}>${opt}</button>
-                  `)}
-                </div>
+                <${ToggleGroup} options=${['通常', '弱い', 'ほぼなし']} value=${streamStatus} onChange=${setStreamStatus} />
               </div>
             </div>
           </details>
@@ -273,13 +246,7 @@ export function ComposePage() {
             <summary>堤 の 開 け 閉 め <span class="compose-sub">任意</span></summary>
             <div class="compose-section-body">
               <div class="form-group">
-                <div class="toggle-group">
-                  ${['開けた', '閉めた'].map(opt => html`
-                    <button key=${opt} type="button"
-                      class=${`toggle-btn ${opAction === opt ? 'active' : ''}`}
-                      onClick=${() => setOpAction(opAction === opt ? '' : opt)}>${opt}</button>
-                  `)}
-                </div>
+                <${ToggleGroup} options=${['開けた', '閉めた']} value=${opAction} onChange=${setOpAction} />
               </div>
               <div class="compose-foot-hint">どれくらい開けたか・理由・状況は上の「メモ」欄に書いてください</div>
             </div>

@@ -4,7 +4,7 @@
  * 三畝・一反は田植え日が同じ前提なので、1枚のカードで両方を兼ねる。
  *
  * props:
- *   - phenology: api.listPaddyPhenology() の結果配列 + progress
+ *   - phenology: PADDIES(data/paddies.js)の各要素 + progress
  *   - error: 取得エラー時の文字列
  */
 

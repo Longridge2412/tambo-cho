@@ -10,9 +10,8 @@ const { createElement: h, useState, useEffect } = React;
 const html = htm.bind(h);
 
 import { api } from '../api.js';
-import { formatShort, evalSymbol, cardColorClass } from '../utils.js';
-import { avatarFor } from '../data/member_avatars.js';
 import { Header } from '../components/Header.js';
+import { buildFeedGroups, groupPartLabels } from '../services/feed.js';
 import { Lightbox, toLightboxUrl } from '../components/Lightbox.js';
 import { PostCard } from '../components/PostCard.js';
 import { EditPost } from '../components/EditPost.js';
@@ -63,19 +62,26 @@ export function CalendarPage() {
     setActionMsg(text);
     setTimeout(() => setActionMsg(''), 2500);
   };
-  const handleEditStart = (item) => setEditingKey(`${item.type}:${item.id}`);
+  const handleEditStart = (item) => setEditingKey(item.key);
   const handleEditCancel = () => setEditingKey(null);
+
+  // グループ単位の保存(Home と同じ要領)
   const handleEditSave = async (item, updates) => {
     try {
-      if (item.type === 'visit') {
-        await api.updateVisit({ visit_id: item.id, ...updates });
-        setVisits(visits.map(v => v.visit_id === item.id ? { ...v, ...updates } : v));
-      } else if (item.type === 'facility') {
-        await api.updateFacilityOp({ op_id: item.id, ...updates });
-        setOps(ops.map(o => o.op_id === item.id ? { ...o, ...updates } : o));
-      } else if (item.type === 'note') {
-        await api.updateNote({ note_id: item.id, ...updates });
-        setNotes(notes.map(n => n.note_id === item.id ? { ...n, ...updates } : n));
+      if (updates.visit) {
+        const id = item.parts.visit.visit_id;
+        await api.updateVisit({ visit_id: id, ...updates.visit });
+        setVisits(prev => prev.map(v => v.visit_id === id ? { ...v, ...updates.visit } : v));
+      }
+      if (updates.facility) {
+        const id = item.parts.facility.op_id;
+        await api.updateFacilityOp({ op_id: id, ...updates.facility });
+        setOps(prev => prev.map(o => o.op_id === id ? { ...o, ...updates.facility } : o));
+      }
+      if (updates.note) {
+        const id = item.parts.note.note_id;
+        await api.updateNote({ note_id: id, ...updates.note });
+        setNotes(prev => prev.map(n => n.note_id === id ? { ...n, ...updates.note } : n));
       }
       setEditingKey(null);
       flash('保存しました');
@@ -84,18 +90,25 @@ export function CalendarPage() {
     }
   };
 
+  // グループ単位の削除(まとめて消す)
   const handleDeletePost = async (item) => {
-    if (!confirm('この投稿を削除しますか?\n取り消せません。')) return;
+    const labels = groupPartLabels(item).join(' + ');
+    if (!confirm(`この投稿(${labels})を削除しますか?\n取り消せません。`)) return;
     try {
-      if (item.type === 'visit') {
-        await api.deleteVisit({ visit_id: item.id });
-        setVisits(visits.filter(v => v.visit_id !== item.id));
-      } else if (item.type === 'facility') {
-        await api.deleteFacilityOp({ op_id: item.id });
-        setOps(ops.filter(o => o.op_id !== item.id));
-      } else if (item.type === 'note') {
-        await api.deleteNote({ note_id: item.id });
-        setNotes(notes.filter(n => n.note_id !== item.id));
+      if (item.parts.visit) {
+        const id = item.parts.visit.visit_id;
+        await api.deleteVisit({ visit_id: id });
+        setVisits(prev => prev.filter(v => v.visit_id !== id));
+      }
+      if (item.parts.facility) {
+        const id = item.parts.facility.op_id;
+        await api.deleteFacilityOp({ op_id: id });
+        setOps(prev => prev.filter(o => o.op_id !== id));
+      }
+      if (item.parts.note) {
+        const id = item.parts.note.note_id;
+        await api.deleteNote({ note_id: id });
+        setNotes(prev => prev.filter(n => n.note_id !== id));
       }
       flash('削除しました');
     } catch (err) {
@@ -123,24 +136,14 @@ export function CalendarPage() {
     if (isNaN(d.getTime())) return String(iso).slice(0, 10);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
+  const groups = buildFeedGroups({ visits, ops, notes, memberMap });
   const postsByDate = {};
-  const pushPost = (dateStr, post) => {
-    if (!dateStr) return;
-    const k = localYmd(dateStr);
+  groups.forEach(g => {
+    const k = localYmd(g.ts);
     if (!k) return;
     if (!postsByDate[k]) postsByDate[k] = [];
-    postsByDate[k].push(post);
-  };
-  visits.forEach(v => pushPost(v.visited_at, {
-    type: 'visit', id: v.visit_id, ts: v.visited_at, by: memberMap[v.member_id] || '?', data: v
-  }));
-  ops.forEach(o => pushPost(o.operated_at, {
-    type: 'facility', id: o.op_id, ts: o.operated_at, by: memberMap[o.member_id] || '?', data: o
-  }));
-  notes.forEach(n => pushPost(n.created_at, {
-    type: 'note', id: n.note_id, ts: n.created_at, by: memberMap[n.created_by] || '?', data: n
-  }));
-  Object.values(postsByDate).forEach(arr => arr.sort((a,b) => String(b.ts).localeCompare(String(a.ts))));
+    postsByDate[k].push(g);
+  });
 
   // ヒートマップ色:0/1/2-3/4+
   function intensity(n) {
@@ -257,12 +260,11 @@ export function CalendarPage() {
           ${selectedPosts.length === 0
             ? html`<div class="empty-note">この日の投稿はありません</div>`
             : selectedPosts.map(item => {
-                const k = item.type + ':' + item.id;
-                if (editingKey === k) {
-                  return html`<${EditPost} key=${k} item=${item}
+                if (editingKey === item.key) {
+                  return html`<${EditPost} key=${item.key} item=${item}
                     onSave=${handleEditSave} onCancel=${handleEditCancel} />`;
                 }
-                return html`<${PostCard} key=${k} item=${item}
+                return html`<${PostCard} key=${item.key} item=${item}
                   onEdit=${handleEditStart} onDelete=${handleDeletePost}
                   onPhotoClick=${(url) => setLightboxUrl(toLightboxUrl(url))} />`;
               })

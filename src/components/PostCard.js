@@ -1,7 +1,11 @@
 /**
  * 投稿カード(共通)
  *
- * Home / Calendar の両方で使う、見回り・堤の操作・覚書を表示するカード。
+ * Home / Calendar の両方で使う投稿グループ表示カード。
+ * item は services/feed.js の buildFeedGroups が作るグループ:
+ *   { key, ts, by, parts: { visit?, facility?, note? } }
+ * 1回の共有(batch_id)で作られた見回り・堤の操作・覚書を1枚にまとめて表示する。
+ *
  * 写真タップで onPhotoClick(url) を呼ぶ。
  * 編集/削除ボタンは onEdit/onDelete が渡された時のみ表示。
  */
@@ -18,44 +22,40 @@ function convertDriveUrl(url) {
   if (!m) return url;
   return `https://lh3.googleusercontent.com/d/${m[1]}=w600`;
 }
-function truncate(s, n) {
-  if (!s) return '';
-  s = String(s);
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
 
 export function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
-  const v = item.data;
+  const { visit, facility, note } = item.parts;
   const initial = (item.by || '?').charAt(0);
   const avatarUrl = avatarFor(item.by);
   const colorClass = cardColorClass(item.ts);
 
-  // 写真
+  // 写真(visit の2枚 + facility/note の1枚ずつ)
   const photos = [];
-  if (item.type === 'visit') {
-    if (v.water_level_photo_url) photos.push({ label: '三畝', url: convertDriveUrl(v.water_level_photo_url) });
-    if (v.field2_photo_url)      photos.push({ label: '一反', url: convertDriveUrl(v.field2_photo_url) });
-  } else if (item.type === 'facility' && v.photo_url) {
-    photos.push({ label: '', url: convertDriveUrl(v.photo_url) });
-  } else if (item.type === 'note' && v.photo_url) {
-    photos.push({ label: '', url: convertDriveUrl(v.photo_url) });
+  if (visit) {
+    if (visit.water_level_photo_url) photos.push({ label: '三畝', url: convertDriveUrl(visit.water_level_photo_url) });
+    if (visit.field2_photo_url)      photos.push({ label: '一反', url: convertDriveUrl(visit.field2_photo_url) });
   }
+  if (facility && facility.photo_url) photos.push({ label: '', url: convertDriveUrl(facility.photo_url) });
+  if (note && note.photo_url)         photos.push({ label: '', url: convertDriveUrl(note.photo_url) });
 
   // タグ
   const tags = [];
-  if (item.type === 'visit') {
-    if (v.water_level_eval) tags.push(`三畝 ${evalSymbol(v.water_level_eval)}`);
-    if (v.field2_eval)      tags.push(`一反 ${evalSymbol(v.field2_eval)}`);
-    if (v.stream_status)    tags.push(`疎水 ${v.stream_status}`);
-  } else if (item.type === 'facility') {
-    tags.push(`${v.target}${v.action ? ' ' + v.action : ''}`);
+  if (visit) {
+    if (visit.water_level_eval) tags.push(`三畝 ${evalSymbol(visit.water_level_eval)}`);
+    if (visit.field2_eval)      tags.push(`一反 ${evalSymbol(visit.field2_eval)}`);
+    if (visit.stream_status)    tags.push(`疎水 ${visit.stream_status}`);
+  }
+  if (facility) {
+    tags.push(`${facility.target}${facility.action ? ' ' + facility.action : ''}`);
   }
 
-  // 本文
-  let body = '';
-  if (item.type === 'visit')          body = v.free_note || '';
-  else if (item.type === 'facility')  body = v.reason || v.coordination_note || '';
-  else if (item.type === 'note')      body = v.content || v.body || '';
+  // 本文(通常はどれか1つだけ入っている)
+  const bodies = [];
+  if (visit && visit.free_note) bodies.push(visit.free_note);
+  if (facility && (facility.reason || facility.coordination_note)) {
+    bodies.push(facility.reason || facility.coordination_note);
+  }
+  if (note && (note.content || note.body)) bodies.push(note.content || note.body);
 
   return html`
     <article class=${`post ${colorClass}`}>
@@ -88,7 +88,7 @@ export function PostCard({ item, onEdit, onDelete, onPhotoClick }) {
         </div>
       `}
 
-      ${body && html`<div class="post-body">${body}</div>`}
+      ${bodies.map((b, i) => html`<div class="post-body" key=${i}>${b}</div>`)}
 
       ${(onEdit || onDelete) && html`
         <div class="post-foot">
