@@ -18,22 +18,18 @@ function apiAddNote(payload) {
     photo_url = uploadDataUrlToDrive(payload.photo_data_url, filename, '覚書写真').url;
   }
 
-  sheet.appendRow([
-    note_id,
-    payload.content || '',
-    payload.created_by || '',
-    now,
-    now,
-    payload.pinned === true,
-    photo_url
-  ]);
-  return {
-    note_id, content: payload.content || '',
+  const record = {
+    note_id: note_id,
+    content: payload.content || '',
     created_by: payload.created_by || '',
-    created_at: now, updated_at: now,
+    created_at: now,
+    updated_at: now,
     pinned: payload.pinned === true,
-    photo_url
+    photo_url: photo_url,
+    batch_id: payload.batch_id || ''
   };
+  appendRowByHeaders(sheet, record);
+  return record;
 }
 
 function apiListNotes() {

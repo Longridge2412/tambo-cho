@@ -60,6 +60,7 @@ function dispatch(action, payload) {
     case 'initSchema':        return initializeSchema();
     case 'addMember':         return apiAddMember(payload);
     case 'listMembers':       return apiListMembers();
+    case 'addPost':           return apiAddPost(payload);
     case 'addVisit':          return apiAddVisit(payload);
     case 'listVisits':        return apiListVisits(payload);
     case 'addFacilityOp':     return apiAddFacilityOp(payload);

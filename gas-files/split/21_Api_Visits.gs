@@ -22,27 +22,20 @@ function apiAddVisit(payload) {
     photo_url_2 = uploadDataUrlToDrive(payload.field2_photo_data_url, filename, '見回り写真').url;
   }
 
-  sheet.appendRow([
-    visit_id,
-    payload.member_id,
-    visited_at,
-    photo_url,
-    payload.water_level_eval || '',
-    payload.stream_status || '',
-    payload.free_note || '',
-    photo_url_2,
-    payload.field2_eval || ''
-  ]);
-
-  return {
-    visit_id, member_id: payload.member_id, visited_at,
+  const record = {
+    visit_id: visit_id,
+    member_id: payload.member_id,
+    visited_at: visited_at,
     water_level_photo_url: photo_url,
     water_level_eval: payload.water_level_eval || '',
     stream_status: payload.stream_status || '',
     free_note: payload.free_note || '',
     field2_photo_url: photo_url_2,
-    field2_eval: payload.field2_eval || ''
+    field2_eval: payload.field2_eval || '',
+    batch_id: payload.batch_id || ''
   };
+  appendRowByHeaders(sheet, record);
+  return record;
 }
 
 function apiListVisits(payload) {

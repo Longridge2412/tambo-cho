@@ -54,6 +54,26 @@ function rowToObject(headers, row) {
 }
 
 /**
+ * ヘッダ名にもとづいて1行を追記する(列順に依存しない)。
+ * obj のキーとヘッダ(余白・ゼロ幅文字を正規化)を突き合わせ、
+ * 一致しないヘッダは空文字で埋める。obj 側にしかないキーは無視される
+ * (例: batch_id 列が未追加のシートでも安全に動く)。
+ */
+function appendRowByHeaders(sheet, obj) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) throw new Error('ヘッダ行がありません: ' + sheet.getName());
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const row = headers.map(function (h) {
+    const key = String(h == null ? '' : h)
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\u00A0/g, ' ')
+      .trim();
+    return (key && obj[key] !== undefined && obj[key] !== null) ? obj[key] : '';
+  });
+  sheet.appendRow(row);
+}
+
+/**
  * シート内で一意な ID を生成。prefix_001 形式。
  */
 

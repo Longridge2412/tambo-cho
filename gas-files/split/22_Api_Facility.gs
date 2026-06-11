@@ -17,26 +17,20 @@ function apiAddFacilityOp(payload) {
     photo_url = uploaded.url;
   }
 
-  sheet.appendRow([
-    op_id,
-    payload.member_id,
-    payload.target,
-    payload.action || '',
-    photo_url,
-    operated_at,
-    payload.reason || '',
-    payload.coordination_note || '',
-    payload.paired_op_id || ''
-  ]);
-
-  return {
-    op_id, member_id: payload.member_id,
-    target: payload.target, action: payload.action || '',
-    photo_url, operated_at,
+  const record = {
+    op_id: op_id,
+    member_id: payload.member_id,
+    target: payload.target,
+    action: payload.action || '',
+    photo_url: photo_url,
+    operated_at: operated_at,
     reason: payload.reason || '',
     coordination_note: payload.coordination_note || '',
-    paired_op_id: payload.paired_op_id || ''
+    paired_op_id: payload.paired_op_id || '',
+    batch_id: payload.batch_id || ''
   };
+  appendRowByHeaders(sheet, record);
+  return record;
 }
 
 function apiListFacilityOps(payload) {
