@@ -10,8 +10,9 @@ function apiAddFacilityOp(payload) {
   const op_id = generateId('f', sheet);
   const operated_at = payload.operated_at || new Date().toISOString();
 
-  let photo_url = '';
-  if (payload.photo_data_url) {
+  // photo_url が来ていれば uploadPhoto で先に上げ済み
+  let photo_url = payload.photo_url || '';
+  if (!photo_url && payload.photo_data_url) {
     const filename = `${formatDateForFile(operated_at)}_${payload.member_id}_${payload.target}.jpg`;
     const uploaded = uploadDataUrlToDrive(payload.photo_data_url, filename, '共用設備写真');
     photo_url = uploaded.url;

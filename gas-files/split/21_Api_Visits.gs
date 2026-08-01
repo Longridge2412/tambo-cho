@@ -10,14 +10,15 @@ function apiAddVisit(payload) {
   const visited_at = payload.visited_at || new Date().toISOString();
 
   // 田んぼ1(3畝)の写真
-  let photo_url = '';
-  if (payload.photo_data_url) {
+  // photo_url が来ていれば = フロントが uploadPhoto で先に上げ済み。ここでは何もしない。
+  let photo_url = payload.photo_url || '';
+  if (!photo_url && payload.photo_data_url) {
     const filename = `${formatDateForFile(visited_at)}_${payload.member_id}_3se.jpg`;
     photo_url = uploadDataUrlToDrive(payload.photo_data_url, filename, '見回り写真').url;
   }
   // 田んぼ2(1反)の写真
-  let photo_url_2 = '';
-  if (payload.field2_photo_data_url) {
+  let photo_url_2 = payload.field2_photo_url || '';
+  if (!photo_url_2 && payload.field2_photo_data_url) {
     const filename = `${formatDateForFile(visited_at)}_${payload.member_id}_1tan.jpg`;
     photo_url_2 = uploadDataUrlToDrive(payload.field2_photo_data_url, filename, '見回り写真').url;
   }

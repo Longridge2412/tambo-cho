@@ -1,6 +1,6 @@
 # NEO百 (田んぼ帳) — 次セッション引き継ぎ書
 
-**最終更新:** 2026年6月11日 / SW v57 / 一括投稿API(addPost)+ batch_id グルーピング導入
+**最終更新:** 2026年8月1日 / SW v58 / 送信失敗対策(写真の分割アップ+自動リトライ+冪等化+下書き保存)
 
 ---
 
@@ -35,7 +35,7 @@
 tambo-cho/
 ├── index.html              ← エントリ点 + スプラッシュ CSS + ErrorBoundary 起動
 ├── manifest.json           ← PWA設定
-├── service-worker.js       ← SW v56(network-first, STATIC_FILES に全 .js/画像を列挙)
+├── service-worker.js       ← SW v58(network-first, STATIC_FILES に全 .js/画像を列挙)
 ├── splash.png              ← スプラッシュロゴ
 ├── logo.png                ← 旧ロゴ素材
 │
@@ -49,15 +49,15 @@ tambo-cho/
 │
 ├── src/
 │   ├── main.js              ← ルーティング + ErrorBoundary クラス
-│   ├── api.js               ← GAS callApi(20秒タイムアウト)
+│   ├── api.js               ← GAS callApi(action別タイムアウト+自動リトライ)
 │   ├── utils.js             ← 日付・画像圧縮・evalSymbol(高/適/低→◎○△)・cardColorClass
-│   ├── config.js            ← GAS URL、画像圧縮設定
+│   ├── config.js            ← GAS URL、画像圧縮(400KB上限)、タイムアウト/リトライ設定
 │   │
 │   ├── styles.css           ← ~2200行。デザイナー編集対象
 │   │
 │   ├── pages/
 │   │   ├── Home.js          ← 投稿フィード(batch_id で1カードに統合表示)
-│   │   ├── Compose.js       ← 共有フォーム(#/compose、addPost 1回で一括送信)
+│   │   ├── Compose.js       ← 共有フォーム(写真は先に個別アップ→addPost。下書き保存あり)
 │   │   ├── Todo.js          ← Todo (#/todo)
 │   │   └── Calendar.js      ← カレンダー(#/calendar)
 │   │
@@ -103,8 +103,8 @@ tambo-cho/
 │       ├── 24_Api_Duty.gs
 │       ├── 25_Api_Season.gs ← apiGetTodayContext(ホーム用大物)
 │       ├── 26_Api_Phenology.gs ← (paddy_phenology シートはもう使っていない)
-│       ├── 27_Api_Todos.gs
-│       └── 28_Api_Posts.gs  ← ★ addPost 一括投稿API(batch_id 発行)
+│       ├── 27_Api_Todos.gs  ← appendRowByHeaders 化(batch_id 対応)
+│       └── 28_Api_Posts.gs  ← ★ addPost 一括投稿API(client_batch_id で冪等 + ScriptLock)
 │
 ├── tools/
 │   └── check_static_files.mjs ← SW の STATIC_FILES と src/ の突合チェック(node で実行)
@@ -128,7 +128,7 @@ tambo-cho/
 | `duty_week` | target_date, slot, member_id, modified_by, modified_at |
 | `duty_swaps` | swap_id, target_date, original_member_id, substitute_member_id, accepted_at, note, created_at |
 | `season_targets` | (季節目標) |
-| `todos` | todo_id, content, due_date, created_by, created_at, status, completed_at, completed_by |
+| `todos` | todo_id, content, due_date, created_by, created_at, status, completed_at, completed_by (+ 任意で batch_id) |
 | ~~`paddy_phenology`~~ | **現在は未使用**(田植え日は paddies.js でハードコード) |
 
 **⚠️ 重要な運用知見:**
@@ -206,8 +206,8 @@ tambo-cho/
 - 機能修正で SW を bump → アプリ側に更新バナーが出る → タップで適用
 
 ### Personal Access Token
-- 直近の作業で `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86KIApWOBFt` を使っていた
-- **次セッション開始時に新規発行してもらう(古いものは失効推奨)**
+- **このリポジトリは Public。トークンを本文に書かないこと**(過去に平文で記載してしまい、2026/8/1 に削除+失効依頼済み)
+- 毎セッション新規発行し、使い終わったら失効させる。ドキュメントには残さない
 
 ### GAS Web App URL
 - `src/config.js` の `GAS_URL` に固定
@@ -222,9 +222,28 @@ tambo-cho/
 - batch_id グルーピングにより、レコードが複数に分かれてもホーム/カレンダーでは1カードに統合表示される
 - メモの保存先ルール(写真あり→覚書 / 見回りあり→free_note / 堤のみ→reason / 単独→覚書)はデータ上は維持。表示が統合されたため体験上の問題は消えた
 
-### B. 「送信失敗」エラー(原因未特定・構造対策は実施済み)
-- 対策(2026/6/11): 送信を addPost 1回に集約(従来は最大4回直列で、タイムアウト抽選を複数回引いていた)。途中失敗時は GAS が**「保存済み: ○○」をエラー文言に含めて返す**ので、どこまで保存されたかが分かり重複再送を防げる
-- 再発したらエラー文言をそのまま記録してもらう
+### B. 「送信失敗」エラー → **原因特定 + 対策実施(2026/8/1)**
+
+Yuki さんの報告は「**写真を付けた時に失敗しやすい**」。読み直して分かった構造:
+
+| 原因 | 内容 |
+|---|---|
+| 画像が重い | 長辺1920px/品質0.8 → base64化で1枚0.5〜1.2MB。最大3枚で3MB超の POST |
+| 通信1本に全部乗せ | その1回の中で Drive アップ + 共有設定 + シート追記まで実行 |
+| 20秒で強制中断 | `api.js` の AbortController。田んぼの電波では普通に超える |
+| 中断≠キャンセル | クライアントが諦めてもサーバーは書き込みを続行 → 「失敗」表示なのに保存済み → 再送で二重投稿 |
+| 復帰手段なし | リトライも下書き保存も無く、失敗=入力全消し |
+
+**対策(実装済み):**
+1. 画像圧縮を長辺1280px/品質0.72 + **400KB上限**(超えたら品質→解像度の順に自動で落とす。実測 6.2MB → 172KB)
+2. 写真は `uploadPhoto` で**1枚ずつ先に送る**。本体 `addPost` には URL だけ渡す(通信を小さく分割)
+3. タイムアウトを action 別に(一覧20秒 / 写真90秒 / addPost 45秒)、通信エラー・タイムアウト・5xx は**指数バックオフで最大3回自動再試行**
+4. **冪等化**: フロントが `client_batch_id` を作り再送でも同じ値を送る。GAS は各シートの batch_id 列を見て、既に保存済みの部分は書かない(`batchIdExists()`)。→ 何度押しても二重にならない
+5. `apiAddPost` 全体を **LockService** で直列化(同時送信での ID 採番衝突も防止)
+6. 入力内容を localStorage に**自動下書き保存**(アップ済み写真URLも保持)。アプリが落ちても復元
+7. 圏外バナー・送信進捗(写真1/2…)・「もう一度送る」ボタンを追加
+
+**運用上の前提:** `visits` / `facility_ops` / `notes` に `batch_id` 列が必要(既存)。`todos` にも `batch_id` 列を足すと Todo も二重登録されなくなる(無くても動く)。
 
 ### C. 旧画面ファイルの完全削除済み
 - Visit.js / Facility.js / Notes.js / Duty.js / History.js は削除済み

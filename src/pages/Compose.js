@@ -7,12 +7,18 @@
  *   - 堤の操作(開けた/閉めた)
  *   - Todo 追加
  *
- * 送信は GAS の addPost 1回にまとめる(従来は最大4回直列だった)。
+ * 送信の流れ(2026-08 改訂 / 「写真ありだと送信失敗」対策):
+ *   1. 写真は1枚ずつ uploadPhoto で先に送る(小さい通信に分割。失敗した枚だけ再送)
+ *   2. 本体は addPost 1回。写真は URL だけ渡すので軽い
+ *   3. batch_id はフロントで作り、再送しても同じものを使う
+ *      → GAS 側が「この batch_id はもう保存済み」と判定して二重投稿を防ぐ
+ *   4. 成功済みの写真URLは画面内に保持。再送で写真を上げ直さない
+ *   5. 入力内容(文字・選択)は自動で下書き保存。アプリを閉じても消えない
+ *
  * 作られたレコードには共通の batch_id が付き、ホームでは1カードに統合表示される。
- * 途中失敗時は GAS が「どこまで保存されたか」をエラー文言で返す。
  */
 
-const { createElement: h, useState, useEffect } = React;
+const { createElement: h, useState, useEffect, useRef } = React;
 const html = htm.bind(h);
 
 import { api } from '../api.js';
@@ -21,6 +27,41 @@ import { getCurrentUser, setCurrentUser } from '../services/currentUser.js';
 import { Header } from '../components/Header.js';
 import { BottomNav } from '../components/BottomNav.js';
 import { ToggleGroup } from '../components/ToggleGroup.js';
+
+const DRAFT_KEY = 'tambo_compose_draft';
+const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;  // 3日たった下書きは捨てる
+
+function draftHasSomething(d) {
+  return !!(d.memo || d.eval1 || d.eval2 || d.streamStatus || d.opAction || d.todoText ||
+    (d.uploaded && Object.keys(d.uploaded).length));
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || !d.saved_at) return null;
+    if (Date.now() - d.saved_at > DRAFT_MAX_AGE_MS) { localStorage.removeItem(DRAFT_KEY); return null; }
+    return draftHasSomething(d) ? d : null;
+  } catch (e) { return null; }
+}
+
+function saveDraft(d) {
+  try {
+    if (!draftHasSomething(d)) { localStorage.removeItem(DRAFT_KEY); return; }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(Object.assign({ saved_at: Date.now() }, d)));
+  } catch (e) {}
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
+
+/** 送信1回分の識別子。再送しても同じものを使い回すことで二重投稿を防ぐ。 */
+function newBatchId() {
+  return 'b' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+}
 
 export function ComposePage() {
   const [members, setMembers] = useState([]);
@@ -49,14 +90,63 @@ export function ComposePage() {
   const [todoDue, setTodoDue] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState('');     // 送信中の進捗文言
   const [error, setError] = useState(null);
+  const [failed, setFailed] = useState(false);      // 失敗後の「もう一度送る」表示用
   const [submitted, setSubmitted] = useState(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [keptPhotos, setKeptPhotos] = useState(0);   // 復元した「送信済み写真」の枚数
+  const [offline, setOffline] = useState(typeof navigator !== 'undefined' && navigator.onLine === false);
+
+  // 送信1回分の batch_id と、アップ済み写真URL。
+  // 失敗しても保持し、再送時に「同じ batch_id」「上げ直さない写真」で送る。
+  const batchIdRef = useRef(null);
+  const uploadedRef = useRef({});   // { p1: url, p2: url, memo: url }
 
   useEffect(() => {
     api.listMembers()
       .then(d => { setMembers(d); setMembersLoading(false); })
       .catch(err => { setError(`メンバー取得失敗: ${err.message}`); setMembersLoading(false); });
   }, []);
+
+  // 圏外/復帰の検知(送信前に気づけるように)
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+
+  // 書きかけの復元(写真そのものは復元できないが、送信済み写真のURLは引き継ぐ)
+  useEffect(() => {
+    const d = loadDraft();
+    if (!d) return;
+    if (d.memo) setMemo(d.memo);
+    if (d.eval1) setEval1(d.eval1);
+    if (d.eval2) setEval2(d.eval2);
+    if (d.streamStatus) setStreamStatus(d.streamStatus);
+    if (d.opAction) setOpAction(d.opAction);
+    if (d.todoText) setTodoText(d.todoText);
+    if (d.todoDue) setTodoDue(d.todoDue);
+    if (d.batch_id) batchIdRef.current = d.batch_id;
+    if (d.uploaded) uploadedRef.current = d.uploaded;
+    setKeptPhotos(Object.keys(d.uploaded || {}).length);
+    setDraftRestored(true);
+  }, []);
+
+  /** 現在の入力内容(+ アップ済み写真URL)を下書きとして保存 */
+  const persistDraft = () => saveDraft({
+    memo, eval1, eval2, streamStatus, opAction, todoText, todoDue,
+    batch_id: batchIdRef.current,
+    uploaded: uploadedRef.current
+  });
+
+  // 入力のたびに下書き保存(送信完了時に消す)
+  useEffect(() => {
+    if (submitted) return;
+    persistDraft();
+  }, [memo, eval1, eval2, streamStatus, opAction, todoText, todoDue, submitted]);
 
   const updateMember = (id) => {
     setMemberId(id);
@@ -70,6 +160,9 @@ export function ComposePage() {
     else if (field === 2) { setFile = setPhotoFile2; setPrev = setPhotoPreview2; }
     else if (field === 'memo') { setFile = setMemoPhotoFile; setPrev = setMemoPhotoPreview; }
     else return;
+    // 写真を選び直したら、アップ済みURLは無効化(次の送信で上げ直す)
+    const slot = (field === 'memo') ? 'memo' : ('p' + field);
+    delete uploadedRef.current[slot];
     if (!file) { setFile(null); setPrev(null); return; }
     setFile(file);
     const reader = new FileReader();
@@ -78,10 +171,34 @@ export function ComposePage() {
   };
 
   const hasVisit = () =>
-    !!(eval1 || eval2 || streamStatus || photoFile1 || photoFile2);
+    !!(eval1 || eval2 || streamStatus || photoFile1 || photoFile2 ||
+       uploadedRef.current.p1 || uploadedRef.current.p2);
   const hasFacility = () => !!opAction;  // 開けた/閉めたが選ばれていれば対象は堤
 
+  /**
+   * 写真を1枚だけ先に Drive へ送る。成功した URL は覚えておき、再送では上げ直さない。
+   * @param {string} slot - 'p1' | 'p2' | 'memo'
+   */
+  const uploadOne = async (slot, file, folder, idx, count) => {
+    if (!file) return '';
+    if (uploadedRef.current[slot]) return uploadedRef.current[slot];
+
+    setProgress(`写真を送っています(${idx}/${count})…`);
+    const dataUrl = await compressImageToDataUrl(file);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    const filename = `${stamp}_${memberId}_${slot}.jpg`;
+
+    const res = await api.uploadPhoto(
+      { data_url: dataUrl, filename: filename, folder: folder },
+      { onRetry: (n) => setProgress(`写真を送っています(${idx}/${count})… 再試行 ${n} 回目`) }
+    );
+    uploadedRef.current[slot] = res.url;
+    persistDraft();   // アプリが落ちても、送信済み写真は失わない
+    return res.url;
+  };
+
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!memberId) { setError('名前を選んでください'); return; }
     if (!hasVisit() && !hasFacility() && !memo.trim() && !memoPhotoFile && !todoText.trim()) {
       setError('何か1つは入力してください');
@@ -89,8 +206,11 @@ export function ComposePage() {
     }
     setSubmitting(true);
     setError(null);
+    setFailed(false);
+    // 再送のときは前回と同じ batch_id を使う(GAS 側が二重書き込みを弾く)
+    if (!batchIdRef.current) batchIdRef.current = newBatchId();
     try {
-      const hasMemoPhoto = !!memoPhotoFile;
+      const hasMemoPhoto = !!memoPhotoFile || !!uploadedRef.current.memo;
       const memoText = memo.trim();
       const visitFilled = hasVisit();
       const facilityFilled = hasFacility();
@@ -104,26 +224,42 @@ export function ComposePage() {
       else if (memoText && facilityFilled) memoTarget = 'facility';
       else if (memoText)                   memoTarget = 'note';
 
-      // 一括送信ペイロードを組み立て
-      const payload = { member_id: memberId };
+      // ── 写真を先に1枚ずつ送る(通信を小さく分け、失敗した枚だけ再送できる)
+      const photoJobs = [];
+      if (visitFilled && photoFile1) photoJobs.push({ slot: 'p1', file: photoFile1, folder: '見回り写真' });
+      if (visitFilled && photoFile2) photoJobs.push({ slot: 'p2', file: photoFile2, folder: '見回り写真' });
+      if (memoTarget === 'note' && memoPhotoFile) photoJobs.push({ slot: 'memo', file: memoPhotoFile, folder: '覚書写真' });
+
+      const photoUrls = {};
+      for (let i = 0; i < photoJobs.length; i++) {
+        const job = photoJobs[i];
+        photoUrls[job.slot] = await uploadOne(job.slot, job.file, job.folder, i + 1, photoJobs.length);
+      }
+      // 前回の送信でアップ済み(下書きから復元した分を含む)の写真も反映
+      ['p1', 'p2', 'memo'].forEach(s => {
+        if (!photoUrls[s] && uploadedRef.current[s]) photoUrls[s] = uploadedRef.current[s];
+      });
+
+      setProgress('記録しています…');
+
+      // ── 本体(写真は URL だけ)を1回で送る
+      const payload = { member_id: memberId, client_batch_id: batchIdRef.current };
       let recVisit = null, recFacility = null, recNote = null, recTodo = null;
 
       if (visitFilled) {
-        const p1 = photoFile1 ? await compressImageToDataUrl(photoFile1) : null;
-        const p2 = photoFile2 ? await compressImageToDataUrl(photoFile2) : null;
         const visitFreeNote = (memoTarget === 'visit') ? memoText : '';
         payload.visit = {
           water_level_eval: eval1 || '',
           field2_eval: eval2 || '',
           stream_status: streamStatus || '',
           free_note: visitFreeNote,
-          photo_data_url: p1,
-          field2_photo_data_url: p2
+          photo_url: photoUrls.p1 || '',
+          field2_photo_url: photoUrls.p2 || ''
         };
         recVisit = {
           water_level_eval: eval1 || '', field2_eval: eval2 || '',
           stream_status: streamStatus || '', free_note: visitFreeNote,
-          photos: (p1 ? 1 : 0) + (p2 ? 1 : 0)
+          photos: (photoUrls.p1 ? 1 : 0) + (photoUrls.p2 ? 1 : 0)
         };
       }
       if (facilityFilled) {
@@ -137,17 +273,22 @@ export function ComposePage() {
         recFacility = { action: opAction, reason: opReason };
       }
       if (memoTarget === 'note') {
-        const mp = memoPhotoFile ? await compressImageToDataUrl(memoPhotoFile) : null;
-        payload.note = { content: memoText, photo_data_url: mp };
-        recNote = { content: memoText, has_photo: !!mp };
+        payload.note = { content: memoText, photo_url: photoUrls.memo || '' };
+        recNote = { content: memoText, has_photo: !!photoUrls.memo };
       }
       if (todoText.trim()) {
         payload.todo = { content: todoText.trim(), due_date: todoDue || '' };
         recTodo = { content: todoText.trim(), due_date: todoDue || '' };
       }
 
-      // 1回の POST でまとめて保存
-      const res = await api.addPost(payload);
+      // 1回の POST でまとめて保存(再送されても batch_id で重複は弾かれる)
+      const res = await api.addPost(payload, {
+        onRetry: (n) => setProgress(`記録しています… 再試行 ${n} 回目`)
+      });
+
+      clearDraft();
+      batchIdRef.current = null;
+      uploadedRef.current = {};
 
       const memberName = members.find(m => m.member_id === memberId)?.display_name || '';
       const shareText = buildComposeShareText({
@@ -159,9 +300,15 @@ export function ComposePage() {
       });
       setSubmitted({ created: res.created || [], shareText, memberName });
     } catch (err) {
-      setError(`送信失敗: ${err.message}`);
+      const uploadedCount = Object.keys(uploadedRef.current).length;
+      const keep = uploadedCount
+        ? `(写真 ${uploadedCount} 枚は送信済みなので、もう一度押しても上げ直しません)`
+        : '';
+      setError(`送信できませんでした。${err.message}${keep}`);
+      setFailed(true);
     } finally {
       setSubmitting(false);
+      setProgress('');
     }
   };
 
@@ -175,6 +322,20 @@ export function ComposePage() {
 
       <main class="screen-body">
         <section class="form-section">
+
+          ${offline && html`
+            <div class="compose-banner compose-banner-warn">
+              いま圏外です。電波の届く場所で「記す」を押してください(入力は消えません)
+            </div>
+          `}
+          ${draftRestored && html`
+            <div class="compose-banner">
+              書きかけを復元しました
+              ${keptPhotos > 0
+                ? html`(送信済みの写真 ${keptPhotos} 枚もそのまま一緒に記録されます)`
+                : html`(写真はもう一度選んでください)`}
+            </div>
+          `}
 
           <!-- 名前(必須・前回の選択を記憶) -->
           <div class="form-group">
@@ -271,10 +432,16 @@ export function ComposePage() {
           </details>
 
           ${error && html`<div class="form-error">${error}</div>`}
+          ${submitting && progress && html`<div class="compose-progress">${progress}</div>`}
 
           <button class="btn-primary" onClick=${handleSubmit} disabled=${submitting}>
-            ${submitting ? '送 信 中...' : '記 す'}
+            ${submitting ? '送 信 中...' : (failed ? 'も う 一 度 送 る' : '記 す')}
           </button>
+          ${failed && !submitting && html`
+            <div class="compose-foot-hint">
+              同じ内容を送り直しても、二重に記録されることはありません
+            </div>
+          `}
 
         </section>
       </main>

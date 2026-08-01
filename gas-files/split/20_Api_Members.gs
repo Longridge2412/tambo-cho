@@ -32,10 +32,17 @@ function apiListMembers() {
 // 見回り記録API
 // ─────────────────────────────────────────
 
+/**
+ * 写真1枚だけを Drive に上げて URL を返す。
+ *
+ * 共有フォームはこの API で写真を先に送り、addPost には URL だけを渡す。
+ * 1回の通信を小さく保つことで、電波の弱い場所でのタイムアウトを減らす。
+ */
 function apiUploadPhoto(payload) {
   if (!payload.data_url) throw new Error('data_url is required');
   const filename = payload.filename || `upload_${Date.now()}.jpg`;
-  return uploadDataUrlToDrive(payload.data_url, filename, '見回り写真');
+  const folder = payload.folder || '見回り写真';
+  return uploadDataUrlToDrive(payload.data_url, filename, folder);
 }
 
 // ─────────────────────────────────────────

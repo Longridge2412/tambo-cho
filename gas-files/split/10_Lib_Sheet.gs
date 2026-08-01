@@ -3,6 +3,56 @@
  */
 
 /**
+ * ヘッダ名・シート名の揺れ(前後空白・ノーブレークスペース・ゼロ幅文字)を吸収。
+ */
+function _normKey(s) {
+  return String(s == null ? '' : s)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')   // ゼロ幅
+    .replace(/\u00A0/g, ' ')                  // ノーブレークスペース
+    .trim();
+}
+
+/**
+ * ヘッダ行から列名の位置(0始まり)を探す。無ければ -1。
+ */
+function _findHeaderIndex(sheet, name) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return -1;
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const target = _normKey(name);
+  for (let i = 0; i < headers.length; i++) {
+    if (_normKey(headers[i]) === target) return i;
+  }
+  return -1;
+}
+
+/**
+ * 指定シートに、その batch_id の行がすでにあるか。
+ *
+ * 「送信失敗に見えたが実は保存されていた」ケースで再送されたときに、
+ * 二重記録を防ぐための冪等チェック。batch_id 列が無いシートでは常に false
+ * (= 従来どおりの動作)。直近 scanRows 行だけを見るので速い。
+ */
+function batchIdExists(sheetName, batchId, scanRows) {
+  const id = _normKey(batchId);
+  if (!id) return false;
+  const sheet = _findSheet(sheetName);
+  if (!sheet) return false;
+  const col = _findHeaderIndex(sheet, 'batch_id');
+  if (col < 0) return false;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+  const limit = scanRows || 500;
+  const startRow = Math.max(2, lastRow - limit + 1);
+  const values = sheet.getRange(startRow, col + 1, lastRow - startRow + 1, 1).getValues();
+  for (let r = 0; r < values.length; r++) {
+    if (_normKey(values[r][0]) === id) return true;
+  }
+  return false;
+}
+
+/**
  * シートタブ名で検索(余白・ノーブレークスペース・ゼロ幅文字を吸収)。
  *   厳密一致 → trim 一致 の順で探す。見つからなければ null。
  */

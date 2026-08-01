@@ -3,7 +3,7 @@
  */
 
 function apiAddNote(payload) {
-  if (!payload.content && !payload.photo_data_url) {
+  if (!payload.content && !payload.photo_data_url && !payload.photo_url) {
     throw new Error('content または photo_data_url が必要です');
   }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -11,9 +11,9 @@ function apiAddNote(payload) {
   const note_id = generateId('n', sheet);
   const now = new Date().toISOString();
 
-  // 任意の写真をDriveへ
-  let photo_url = '';
-  if (payload.photo_data_url) {
+  // 任意の写真をDriveへ(photo_url が来ていれば uploadPhoto で先に上げ済み)
+  let photo_url = payload.photo_url || '';
+  if (!photo_url && payload.photo_data_url) {
     const filename = `${formatDateForFile(now)}_${payload.created_by || 'anon'}_note.jpg`;
     photo_url = uploadDataUrlToDrive(payload.photo_data_url, filename, '覚書写真').url;
   }

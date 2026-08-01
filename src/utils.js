@@ -10,6 +10,11 @@ import { IMAGE_COMPRESSION } from './config.js';
 
 /**
  * File オブジェクトを Data URL に変換しつつ、長辺を MAX_LONG_EDGE に圧縮。
+ *
+ * さらに、圧縮後のサイズが MAX_BYTES を超えている間は
+ *   品質を 0.1 ずつ下げる → それでも駄目なら長辺を 0.8 倍にする
+ * を繰り返して収める。電波の弱い田んぼからの送信を通すための保険。
+ *
  * @param {File} file - input[type=file] からの File
  * @returns {Promise<string>} data:image/jpeg;base64,... 形式の文字列
  */
@@ -19,13 +24,36 @@ export async function compressImageToDataUrl(file) {
   const dataUrl = await readFileAsDataUrl(file);
   const img = await loadImage(dataUrl);
 
-  const { MAX_LONG_EDGE, JPEG_QUALITY } = IMAGE_COMPRESSION;
+  const { MAX_LONG_EDGE, JPEG_QUALITY, MAX_BYTES, MIN_QUALITY, MIN_LONG_EDGE } = IMAGE_COMPRESSION;
 
-  // 長辺基準でスケール計算
+  let longEdgeLimit = MAX_LONG_EDGE;
+  let quality = JPEG_QUALITY;
+  let out = renderToJpeg(img, longEdgeLimit, quality);
+
+  // 目標サイズに収まるまで、品質 → 解像度 の順に落とす
+  while (dataUrlBytes(out) > MAX_BYTES) {
+    if (quality > MIN_QUALITY) {
+      quality = Math.max(MIN_QUALITY, quality - 0.1);
+    } else if (longEdgeLimit > MIN_LONG_EDGE) {
+      longEdgeLimit = Math.max(MIN_LONG_EDGE, Math.round(longEdgeLimit * 0.8));
+      quality = JPEG_QUALITY;  // 解像度を落としたら品質は戻す
+    } else {
+      break;  // これ以上は落とさない(元画像がよほど大きい場合)
+    }
+    out = renderToJpeg(img, longEdgeLimit, quality);
+  }
+
+  return out;
+}
+
+/**
+ * 長辺 limit・品質 quality で JPEG の data URL にする。
+ */
+function renderToJpeg(img, longEdgeLimit, quality) {
   const longEdge = Math.max(img.width, img.height);
-  const scale = longEdge > MAX_LONG_EDGE ? MAX_LONG_EDGE / longEdge : 1;
-  const targetW = Math.round(img.width * scale);
-  const targetH = Math.round(img.height * scale);
+  const scale = longEdge > longEdgeLimit ? longEdgeLimit / longEdge : 1;
+  const targetW = Math.max(1, Math.round(img.width * scale));
+  const targetH = Math.max(1, Math.round(img.height * scale));
 
   const canvas = document.createElement('canvas');
   canvas.width = targetW;
@@ -33,7 +61,17 @@ export async function compressImageToDataUrl(file) {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, targetW, targetH);
 
-  return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+/**
+ * data URL の実バイト数(base64 部分から概算)。
+ */
+export function dataUrlBytes(dataUrl) {
+  if (!dataUrl) return 0;
+  const idx = dataUrl.indexOf(',');
+  const b64 = idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl;
+  return Math.round(b64.length * 3 / 4);
 }
 
 function readFileAsDataUrl(file) {

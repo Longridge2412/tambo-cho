@@ -25,16 +25,19 @@ function apiAddTodo(payload) {
   if (!sheet) throw new Error('todos シートがありません');
   const todo_id = generateId('t', sheet);
   const created_at = new Date().toISOString();
-  sheet.appendRow([
-    todo_id,
-    payload.content,
-    payload.due_date || '',
-    payload.created_by || '',
-    created_at,
-    'open',
-    '',
-    ''
-  ]);
+  // 列順ではなくヘッダ名で書く(列を足しても壊れない)。
+  // batch_id 列を todos シートに追加しておくと、再送時の二重登録も防げる。
+  appendRowByHeaders(sheet, {
+    todo_id: todo_id,
+    content: payload.content,
+    due_date: payload.due_date || '',
+    created_by: payload.created_by || '',
+    created_at: created_at,
+    status: 'open',
+    completed_at: '',
+    completed_by: '',
+    batch_id: payload.batch_id || ''
+  });
   return {
     todo_id, content: payload.content,
     due_date: payload.due_date || '',
